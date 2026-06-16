@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Optical Dipole Trap Calculator</title>
+<meta name="description" content="Browser-based optical dipole trap calculator for trap depths, lab-frame frequencies, scattering rates, and 3D beam geometry." />
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  :root {
+    --page: #f5f7fb;
+    --panel: #ffffff;
+    --panel-soft: #f8fafc;
+    --ink: #172034;
+    --muted: #647083;
+    --line: #d8e0ec;
+    --line2: #ecf1f7;
+    --blue: #2457d6;
+    --blue-soft: #eef5ff;
+    --green: #0f8a65;
+    --red: #dc2626;
+    --amber: #c96c13;
+    --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at top left, rgba(36, 87, 214, 0.11), transparent 34rem),
+      linear-gradient(135deg, #fbfdff 0%, var(--page) 60%, #fffaf5 100%);
+    min-height: 100vh;
+  }
+
+  header {
+    max-width: 1540px;
+    margin: 0 auto;
+    padding: 26px 28px 10px;
+  }
+
+  .top-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 18px;
+  }
+
+  .top-link:hover {
+    color: var(--blue);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(30px, 3.1vw, 44px);
+    line-height: 1.08;
+    letter-spacing: 0;
+    font-weight: 800;
+  }
+
+  .subtitle {
+    margin: 12px 0 0;
+    max-width: 1020px;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .app {
+    max-width: 1540px;
+    margin: 0 auto;
+    padding: 16px 28px 34px;
+    display: grid;
+    grid-template-columns: minmax(370px, 430px) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .card {
+    background: rgba(255, 255, 255, 0.97);
+    border: 1px solid rgba(148, 163, 184, 0.34);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .controls {
+    padding: 16px;
+    position: sticky;
+    top: 14px;
+    max-height: calc(100vh - 28px);
+    overflow: auto;
+  }
+
+  .main {
+    display: grid;
+    grid-template-rows: auto auto auto;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  fieldset {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 15px 14px 14px;
+    margin: 0 0 14px;
+    background: linear-gradient(180deg, #fff, #fbfcff);
+  }
+
+  legend {
+    font-weight: 800;
+    color: #202b43;
+    padding: 0 8px;
+    font-size: 14.5px;
+  }
+
+  label {
+    display: block;
+    min-height: 18px;
+    margin: 0 0 6px;
+    color: #3d485a;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  input, select {
+    width: 100%;
+    height: 41px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    padding: 8px 11px;
+    background: #fff;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13);
+  }
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--blue);
+  }
+
+  input[type="color"] {
+    padding: 4px;
+    cursor: pointer;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 12px;
+  }
+
+  .row3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 12px;
+  }
+
+  .row:last-child,
+  .row3:last-child {
+    margin-bottom: 0;
+  }
+
+  .checkline {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 40px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #3d485a;
+  }
+
+  .btnrow {
+    display: flex;
+    gap: 9px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 12px;
+  }
+
+  button {
+    border: 0;
+    border-radius: 7px;
+    height: 40px;
+    padding: 0 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    background: #e8eef7;
+    color: #162033;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+  }
+
+  button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 9px 18px rgba(15, 23, 42, 0.10);
+  }
+
+  .primary { background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; }
+  .good { background: #dcfce7; color: #166534; }
+  .danger { background: #fee2e2; color: #991b1b; }
+  .ghost { background: #f8fafc; color: #334155; border: 1px solid #dfe7f2; }
+
+  .beam-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .beam-item {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 11px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: var(--panel-soft);
+    cursor: pointer;
+    transition: border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+  }
+
+  .beam-item:hover {
+    border-color: #b9c7dc;
+    background: #fff;
+  }
+
+  .beam-item.active {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(36, 87, 214, 0.11);
+    background: #eef6ff;
+  }
+
+  .swatch {
+    width: 12px;
+    height: 38px;
+    border-radius: 6px;
+  }
+
+  .beam-title {
+    font-size: 13px;
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .beam-meta {
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 11.8px;
+    line-height: 1.4;
+  }
+
+  .pill {
+    border-radius: 6px;
+    padding: 5px 8px;
+    background: #e0e7ff;
+    color: #3730a3;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .section {
+    padding: 18px;
+  }
+
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 13px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  .small {
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .metric {
+    min-height: 116px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px;
+    background: linear-gradient(180deg, #ffffff, #f8fafc);
+  }
+
+  .metric-label {
+    color: var(--muted);
+    font-size: 10.8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 800;
+  }
+
+  .metric-value {
+    margin-top: 8px;
+    font-size: 24px;
+    line-height: 1.12;
+    font-weight: 800;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .metric-sub {
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .plot {
+    width: 100%;
+    min-height: 460px;
+    border: 1px solid #e5eaf3;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .scan-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .scan-plot {
+    min-height: 300px;
+  }
+
+  .fallback {
+    display: none;
+    padding: 22px;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    background: #fff1f2;
+    color: #991b1b;
+    line-height: 1.5;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e5eaf3;
+  }
+
+  th, td {
+    padding: 10px 9px;
+    border-bottom: 1px solid #e5eaf3;
+    text-align: right;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  th {
+    background: #f3f6fb;
+    color: #334155;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  th:first-child, td:first-child { text-align: left; }
+  tr:last-child td { border-bottom: 0; }
+
+  .note {
+    margin: 12px 2px 0;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 1120px) {
+    .app { grid-template-columns: 1fr; }
+    .controls { position: static; max-height: none; }
+    .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 640px) {
+    header, .app { padding-left: 14px; padding-right: 14px; }
+    .row, .row3, .metrics { grid-template-columns: 1fr; }
+    .section-head { display: block; }
+    .plot { min-height: 350px; }
+    th, td { font-size: 12px; padding: 9px 7px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a class="top-link" href="index.html">← Back to calculators</a>
+  <h1>Optical Dipole Trap Calculator</h1>
+  <p class="subtitle">
+    Build a lab-frame ODT from Gaussian beams, visualize the geometry, and estimate trap depth,
+    x/y/z curvatures, principal-mode frequencies, and photon scattering. Frequencies are computed
+    from the smooth Gaussian envelope around the trap center.
+  </p>
+</header>
+
+<div class="app">
+  <aside class="card controls">
+    <fieldset>
+      <legend>Species</legend>
+      <div class="row">
+        <div>
+          <label>Preset</label>
+          <select id="speciesPreset"></select>
+        </div>
+        <div>
+          <label>Name</label>
+          <input id="speciesName" type="text" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Mass (amu)</label>
+          <input id="massAmu" type="number" step="any" />
+        </div>
+        <div>
+          <label>Polarizability (a.u.)</label>
+          <input id="polarAu" type="number" step="any" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>D1 wavelength (nm)</label>
+          <input id="d1Nm" type="number" step="any" />
+        </div>
+        <div>
+          <label>D2 wavelength (nm)</label>
+          <input id="d2Nm" type="number" step="any" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>D1 linewidth Γ/2π (MHz)</label>
+          <input id="g1MHz" type="number" step="any" />
+        </div>
+        <div>
+          <label>D2 linewidth Γ/2π (MHz)</label>
+          <input id="g2MHz" type="number" step="any" />
+        </div>
+      </div>
+      <div class="note">Trap depth uses the editable scalar polarizability. Scattering uses the alkali D-line far-detuned estimate, reported with the same 1/(2π) convention as the Li lab script.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Beam Editor</legend>
+      <div class="row">
+        <div>
+          <label>Beam name</label>
+          <input id="beamName" type="text" />
+        </div>
+        <div>
+          <label>Color</label>
+          <input id="beamColor" type="color" />
+        </div>
+      </div>
+      <div class="row3">
+        <div>
+          <label>Power (W)</label>
+          <input id="beamPower" type="number" step="any" />
+        </div>
+        <div>
+          <label>Waist w0 (um)</label>
+          <input id="beamWaist" type="number" step="any" />
+        </div>
+        <div>
+          <label>Wavelength (nm)</label>
+          <input id="beamWavelength" type="number" step="any" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Azimuth in xy plane (deg from +x)</label>
+          <input id="beamAzimuth" type="number" step="any" />
+        </div>
+        <div>
+          <label>Elevation from xy plane (deg)</label>
+          <input id="beamElevation" type="number" step="any" />
+        </div>
+      </div>
+      <div class="row3">
+        <div>
+          <label>Center x (um)</label>
+          <input id="beamX" type="number" step="any" />
+        </div>
+        <div>
+          <label>Center y (um)</label>
+          <input id="beamY" type="number" step="any" />
+        </div>
+        <div>
+          <label>Center z (um)</label>
+          <input id="beamZ" type="number" step="any" />
+        </div>
+      </div>
+      <div class="row">
+        <label class="checkline"><input id="beamRetro" type="checkbox" /> Retro return pass</label>
+        <label class="checkline"><input id="beamScan" type="checkbox" /> Include in power scan</label>
+      </div>
+      <div class="btnrow">
+        <button class="primary" id="updateBeamBtn" type="button">Update selected</button>
+        <button class="good" id="addBeamBtn" type="button">Add beam</button>
+        <button class="danger" id="deleteBeamBtn" type="button">Delete</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Beams</legend>
+      <div id="beamList" class="beam-list"></div>
+      <div class="btnrow">
+        <button class="ghost" id="defaultsBtn" type="button">Restore lab defaults</button>
+      </div>
+      <div class="note">Power is one-way incident power. A retro beam adds a return pass of the same power in the smooth-envelope calculation.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Power Scan</legend>
+      <div class="row">
+        <div>
+          <label>Selected beam power from (W)</label>
+          <input id="scanMin" type="number" step="any" value="0" />
+        </div>
+        <div>
+          <label>to (W)</label>
+          <input id="scanMax" type="number" step="any" value="100" />
+        </div>
+      </div>
+      <div class="note">Click a beam in the list or 3D plot to focus the scan. Check multiple beams to set them to the same scanned one-way power.</div>
+    </fieldset>
+  </aside>
+
+  <main class="main">
+    <section class="card section">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Trap Summary</div>
+          <div class="small" id="summaryLine">Ready.</div>
+        </div>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">Trap depth</div>
+          <div class="metric-value" id="depthMetric">—</div>
+          <div class="metric-sub" id="depthSub">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Lab-frame frequencies (kHz)</div>
+          <div class="metric-value" id="freqMetric">—</div>
+          <div class="metric-sub">x, y, z in kHz from Hessian diagonal</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Principal modes (kHz)</div>
+          <div class="metric-value" id="modeMetric">—</div>
+          <div class="metric-sub">normal-mode frequencies in kHz</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Scattering rate</div>
+          <div class="metric-value" id="scatterMetric">—</div>
+          <div class="metric-sub" id="scatterSub">—</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card section">
+      <div class="section-head">
+        <div>
+          <div class="section-title">3D Beam Geometry</div>
+          <div class="small">Drag to rotate. Click a beam trace to select it for editing and scans.</div>
+        </div>
+      </div>
+      <div id="geometryPlot" class="plot"></div>
+      <div id="plotFallback" class="fallback">Plotly could not be loaded. The calculator still works, but the interactive plots need internet access for the Plotly CDN.</div>
+    </section>
+
+    <section class="card section">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Power Scan</div>
+          <div class="small" id="scanLine">Scanning selected beam power.</div>
+        </div>
+      </div>
+      <div class="scan-grid">
+        <div id="depthScanPlot" class="plot scan-plot"></div>
+        <div id="frequencyScanPlot" class="plot scan-plot"></div>
+        <div id="scatteringScanPlot" class="plot scan-plot"></div>
+      </div>
+    </section>
+
+    <section class="card section">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Curvature Matrix</div>
+          <div class="small">Second derivatives of the total potential at the trap center, converted to frequencies for the active species.</div>
+        </div>
+      </div>
+      <table id="curvatureTable">
+        <thead>
+          <tr><th>Axis</th><th>Hxx</th><th>Hxy</th><th>Hxz</th><th>Frequency</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="note">
+        Negative frequency signs indicate anti-trapping curvature along that axis or mode. The model assumes red-detuned scalar traps and ignores gravity, magnetic curvature, astigmatism, and retro-reflection interference fringes.
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const C = 299792458;
+const EPS0 = 8.8541878128e-12;
+const KB = 1.380649e-23;
+const HBAR = 1.054571817e-34;
+const AMU = 1.66053906660e-27;
+const A0 = 5.29177210903e-11;
+const AU_ALPHA = 4 * Math.PI * EPS0 * Math.pow(A0, 3);
+const POWER_SCAN_POINTS = 240;
+
+const speciesPresets = {
+  Li6: { name: "Li6", massAmu: 6.0151228874, polarAu: 270, d1Nm: 670.992, d2Nm: 670.977, g1MHz: 5.872, g2MHz: 5.872 },
+  Rb87: { name: "Rb87", massAmu: 86.9091805, polarAu: 677.4, d1Nm: 794.978851, d2Nm: 780.241210, g1MHz: 5.750025, g2MHz: 6.066558 },
+  Custom: { name: "Custom", massAmu: 87, polarAu: 600, d1Nm: "", d2Nm: "", g1MHz: "", g2MHz: "" }
+};
+
+let beams = [];
+let selectedBeamId = null;
+
+const $ = id => document.getElementById(id);
+const deg = x => x * Math.PI / 180;
+const fmt = (x, d = 3) => Number.isFinite(x) ? Number(x).toLocaleString(undefined, { maximumFractionDigits: d }) : "—";
+const sci = x => Number.isFinite(x) ? x.toExponential(3) : "—";
+
+function defaultBeams() {
+  return [
+    {
+      id: crypto.randomUUID(), name: "Horizontal ODT A, 13 deg from y", powerW: 80, waistUm: 60, wavelengthNm: 1064,
+      azimuthDeg: 80, elevationDeg: 0, centerUm: [0, 0, 0], retro: true, scan: true, color: "#2563eb"
+    },
+    {
+      id: crypto.randomUUID(), name: "Horizontal ODT B, 17 deg from y", powerW: 80, waistUm: 60, wavelengthNm: 1064,
+      azimuthDeg: 76, elevationDeg: 0, centerUm: [0, 0, 0], retro: true, scan: false, color: "#dc2626"
+    },
+    {
+      id: crypto.randomUUID(), name: "45 deg xz dimple", powerW: 1, waistUm: 60, wavelengthNm: 1064,
+      azimuthDeg: 0, elevationDeg: 45, centerUm: [0, 0, 0], retro: false, scan: false, color: "#059669"
+    }
+  ];
+}
+
+function initSpeciesMenu() {
+  Object.keys(speciesPresets).forEach(key => {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = key;
+    $("speciesPreset").appendChild(opt);
+  });
+  $("speciesPreset").value = "Li6";
+  loadSpecies("Li6");
+}
+
+function loadSpecies(key) {
+  const s = speciesPresets[key];
+  $("speciesName").value = s.name;
+  $("massAmu").value = s.massAmu;
+  $("polarAu").value = s.polarAu;
+  $("d1Nm").value = s.d1Nm;
+  $("d2Nm").value = s.d2Nm;
+  $("g1MHz").value = s.g1MHz;
+  $("g2MHz").value = s.g2MHz;
+}
+
+function readSpecies() {
+  return {
+    name: $("speciesName").value.trim() || "Custom",
+    massKg: parseFloat($("massAmu").value) * AMU,
+    polarAu: parseFloat($("polarAu").value),
+    d1Nm: parseFloat($("d1Nm").value),
+    d2Nm: parseFloat($("d2Nm").value),
+    g1MHz: parseFloat($("g1MHz").value),
+    g2MHz: parseFloat($("g2MHz").value)
+  };
+}
+
+function direction(azimuthDeg, elevationDeg) {
+  const a = deg(azimuthDeg);
+  const e = deg(elevationDeg);
+  return [Math.cos(e) * Math.cos(a), Math.cos(e) * Math.sin(a), Math.sin(e)];
+}
+
+function add(v, w) { return [v[0] + w[0], v[1] + w[1], v[2] + w[2]]; }
+function sub(v, w) { return [v[0] - w[0], v[1] - w[1], v[2] - w[2]]; }
+function mul(v, a) { return [v[0] * a, v[1] * a, v[2] * a]; }
+function dot(v, w) { return v[0] * w[0] + v[1] * w[1] + v[2] * w[2]; }
+function norm(v) { return Math.sqrt(dot(v, v)); }
+
+function beamPasses(list = beams) {
+  const passes = [];
+  list.forEach(beam => {
+    const dir = direction(beam.azimuthDeg, beam.elevationDeg);
+    passes.push({ ...beam, passId: beam.id + "_f", direction: dir, label: beam.name });
+    if (beam.retro) passes.push({ ...beam, passId: beam.id + "_r", direction: mul(dir, -1), label: beam.name + " return" });
+  });
+  return passes;
+}
+
+function intensityAt(pointUm, beam) {
+  const lambda = beam.wavelengthNm * 1e-9;
+  const w0 = beam.waistUm * 1e-6;
+  const point = pointUm.map(x => x * 1e-6);
+  const center = beam.centerUm.map(x => x * 1e-6);
+  const rel = sub(point, center);
+  const s = dot(rel, beam.direction);
+  const radial = sub(rel, mul(beam.direction, s));
+  const r2 = dot(radial, radial);
+  const zR = Math.PI * w0 * w0 / lambda;
+  const w = w0 * Math.sqrt(1 + (s / zR) * (s / zR));
+  return 2 * beam.powerW / (Math.PI * w * w) * Math.exp(-2 * r2 / (w * w));
+}
+
+function totalIntensity(pointUm, list = beams) {
+  return beamPasses(list).reduce((sum, pass) => sum + intensityAt(pointUm, pass), 0);
+}
+
+function potentialJ(pointUm, species, list = beams) {
+  const alphaSI = species.polarAu * AU_ALPHA;
+  return -alphaSI * totalIntensity(pointUm, list) / (2 * EPS0 * C);
+}
+
+function scatteringRate(pointUm, species, list = beams) {
+  if (![species.d1Nm, species.d2Nm, species.g1MHz, species.g2MHz].every(Number.isFinite)) return NaN;
+  let total = 0;
+  beamPasses(list).forEach(beam => {
+    const I = intensityAt(pointUm, beam);
+    const omegaL = 2 * Math.PI * C / (beam.wavelengthNm * 1e-9);
+    const omega1 = 2 * Math.PI * C / (species.d1Nm * 1e-9);
+    const omega2 = 2 * Math.PI * C / (species.d2Nm * 1e-9);
+    const gamma1 = 2 * Math.PI * species.g1MHz * 1e6;
+    const gamma2 = 2 * Math.PI * species.g2MHz * 1e6;
+    const gammaD = gamma1 / 3 + 2 * gamma2 / 3;
+    const omegaD = omega1 / 3 + 2 * omega2 / 3;
+    const pref = Math.PI * C * C * gammaD * gammaD * Math.pow(omegaL, 3) / (2 * HBAR * Math.pow(omegaD, 6));
+    total += pref * (1 / Math.pow(omega1 - omegaL, 2) + 2 / Math.pow(omega2 - omegaL, 2)) * I / (2 * Math.PI);
+  });
+  return total;
+}
+
+function hessian(species, list = beams) {
+  const h = 0.15;
+  const U = p => potentialJ(p, species, list);
+  const H = [[0,0,0],[0,0,0],[0,0,0]];
+  for (let i = 0; i < 3; i++) {
+    const pi = [0,0,0]; pi[i] = h;
+    const mi = [0,0,0]; mi[i] = -h;
+    H[i][i] = (U(pi) - 2 * U([0,0,0]) + U(mi)) / Math.pow(h * 1e-6, 2);
+    for (let j = i + 1; j < 3; j++) {
+      const pp = [0,0,0], pm = [0,0,0], mp = [0,0,0], mm = [0,0,0];
+      pp[i] = h; pp[j] = h;
+      pm[i] = h; pm[j] = -h;
+      mp[i] = -h; mp[j] = h;
+      mm[i] = -h; mm[j] = -h;
+      H[i][j] = (U(pp) - U(pm) - U(mp) + U(mm)) / (4 * Math.pow(h * 1e-6, 2));
+      H[j][i] = H[i][j];
+    }
+  }
+  return H;
+}
+
+function jacobiEigenvalues(A) {
+  const a = A.map(row => row.slice());
+  for (let sweep = 0; sweep < 40; sweep++) {
+    let p = 0, q = 1, max = Math.abs(a[0][1]);
+    [[0,2],[1,2]].forEach(([i,j]) => {
+      if (Math.abs(a[i][j]) > max) { max = Math.abs(a[i][j]); p = i; q = j; }
+    });
+    if (max < 1e-16) break;
+    const phi = 0.5 * Math.atan2(2 * a[p][q], a[q][q] - a[p][p]);
+    const c = Math.cos(phi), s = Math.sin(phi);
+    const app = c*c*a[p][p] - 2*s*c*a[p][q] + s*s*a[q][q];
+    const aqq = s*s*a[p][p] + 2*s*c*a[p][q] + c*c*a[q][q];
+    a[p][p] = app; a[q][q] = aqq; a[p][q] = 0; a[q][p] = 0;
+    for (let k = 0; k < 3; k++) {
+      if (k === p || k === q) continue;
+      const akp = c*a[k][p] - s*a[k][q];
+      const akq = s*a[k][p] + c*a[k][q];
+      a[k][p] = akp; a[p][k] = akp;
+      a[k][q] = akq; a[q][k] = akq;
+    }
+  }
+  return [a[0][0], a[1][1], a[2][2]].sort((x, y) => x - y);
+}
+
+function freqHz(curvature, massKg) {
+  const sign = curvature < 0 ? -1 : 1;
+  return sign * Math.sqrt(Math.abs(curvature) / massKg) / (2 * Math.PI);
+}
+
+function calculate(list = beams) {
+  const species = readSpecies();
+  const U0 = potentialJ([0,0,0], species, list);
+  const H = hessian(species, list);
+  const labFreqs = [freqHz(H[0][0], species.massKg), freqHz(H[1][1], species.massKg), freqHz(H[2][2], species.massKg)];
+  const modeFreqs = jacobiEigenvalues(H).map(v => freqHz(v, species.massKg));
+  const scatter = scatteringRate([0,0,0], species, list);
+  return { species, U0, depthK: -U0 / KB, depthJ: -U0, H, labFreqs, modeFreqs, scatter };
+}
+
+function readBeamEditor() {
+  return {
+    name: $("beamName").value.trim() || "New beam",
+    powerW: parseFloat($("beamPower").value),
+    waistUm: parseFloat($("beamWaist").value),
+    wavelengthNm: parseFloat($("beamWavelength").value),
+    azimuthDeg: parseFloat($("beamAzimuth").value),
+    elevationDeg: parseFloat($("beamElevation").value),
+    centerUm: [parseFloat($("beamX").value), parseFloat($("beamY").value), parseFloat($("beamZ").value)],
+    retro: $("beamRetro").checked,
+    scan: $("beamScan").checked,
+    color: $("beamColor").value || "#2563eb"
+  };
+}
+
+function validateBeam(b) {
+  if (![b.powerW, b.waistUm, b.wavelengthNm, b.azimuthDeg, b.elevationDeg, ...b.centerUm].every(Number.isFinite)) throw new Error("Please fill all beam fields with valid numbers.");
+  if (b.powerW < 0 || b.waistUm <= 0 || b.wavelengthNm <= 0) throw new Error("Power must be non-negative; waist and wavelength must be positive.");
+}
+
+function fillBeamEditor(beam) {
+  selectedBeamId = beam.id;
+  $("beamName").value = beam.name;
+  $("beamPower").value = beam.powerW;
+  $("beamWaist").value = beam.waistUm;
+  $("beamWavelength").value = beam.wavelengthNm;
+  $("beamAzimuth").value = beam.azimuthDeg;
+  $("beamElevation").value = beam.elevationDeg;
+  $("beamX").value = beam.centerUm[0];
+  $("beamY").value = beam.centerUm[1];
+  $("beamZ").value = beam.centerUm[2];
+  $("beamRetro").checked = beam.retro;
+  $("beamScan").checked = beam.scan;
+  $("beamColor").value = beam.color;
+  render();
+}
+
+function renderBeamList() {
+  const box = $("beamList");
+  box.innerHTML = "";
+  beams.forEach(beam => {
+    const div = document.createElement("div");
+    div.className = "beam-item" + (beam.id === selectedBeamId ? " active" : "");
+    div.innerHTML = `
+      <span class="swatch" style="background:${beam.color}"></span>
+      <div>
+        <div class="beam-title">${beam.name}</div>
+        <div class="beam-meta">${fmt(beam.powerW, 3)} W · w0 ${fmt(beam.waistUm, 2)} um · az ${fmt(beam.azimuthDeg, 1)} deg · el ${fmt(beam.elevationDeg, 1)} deg</div>
+      </div>
+      <span class="pill">${beam.retro ? "retro" : "single"}</span>`;
+    div.onclick = () => fillBeamEditor(beam);
+    box.appendChild(div);
+  });
+}
+
+function renderSummary(result) {
+  const totalPower = beams.reduce((s, b) => s + b.powerW * (b.retro ? 2 : 1), 0);
+  $("summaryLine").textContent = `${result.species.name}: ${fmt(totalPower, 2)} W effective smooth-envelope power at ${beams.length} beam axes.`;
+  $("depthMetric").textContent = `${fmt(result.depthK * 1e6, 2)} uK`;
+  $("depthSub").textContent = `${sci(result.depthJ)} J at trap center`;
+  $("freqMetric").textContent = result.labFreqs.map(f => fmt(f / 1e3, 2)).join(" / ");
+  $("modeMetric").textContent = result.modeFreqs.map(f => fmt(f / 1e3, 2)).join(" / ");
+  $("scatterMetric").textContent = Number.isFinite(result.scatter) ? `${fmt(result.scatter, 3)} s^-1` : "—";
+  $("scatterSub").textContent = Number.isFinite(result.scatter) ? `Lifetime scale ${fmt(1 / result.scatter, 3)} s` : "Add D-line data for estimate";
+  const axes = ["x", "y", "z"];
+  const tbody = $("curvatureTable").querySelector("tbody");
+  tbody.innerHTML = "";
+  axes.forEach((axis, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${axis}</td><td>${sci(result.H[i][0])}</td><td>${sci(result.H[i][1])}</td><td>${sci(result.H[i][2])}</td><td>${fmt(result.labFreqs[i] / 1e3, 3)} kHz</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function plotGeometry() {
+  if (!window.Plotly) {
+    $("plotFallback").style.display = "block";
+    return;
+  }
+  $("plotFallback").style.display = "none";
+  const traces = [];
+  beams.forEach((beam, index) => {
+    const dir = direction(beam.azimuthDeg, beam.elevationDeg);
+    const center = beam.centerUm;
+    const length = Math.max(380, beam.waistUm * 5);
+    const p1 = add(center, mul(dir, -length));
+    const p2 = add(center, mul(dir, length));
+    const width = beam.id === selectedBeamId ? 10 : 6;
+    traces.push({
+      type: "scatter3d", mode: "lines+markers", name: beam.name,
+      x: [p1[0], center[0], p2[0]], y: [p1[1], center[1], p2[1]], z: [p1[2], center[2], p2[2]],
+      line: { color: beam.color, width }, marker: { size: [2, 5, 2], color: beam.color },
+      customdata: [[beam.id], [beam.id], [beam.id]], hovertemplate: `${beam.name}<br>x %{x:.1f} um<br>y %{y:.1f} um<br>z %{z:.1f} um<extra></extra>`
+    });
+    if (beam.retro) {
+      traces.push({
+        type: "scatter3d", mode: "lines", name: beam.name + " return",
+        x: [p2[0], center[0], p1[0]], y: [p2[1], center[1], p1[1]], z: [p2[2], center[2], p1[2]],
+        line: { color: beam.color, width: Math.max(3, width - 2), dash: "dash" },
+        customdata: [[beam.id], [beam.id], [beam.id]], hovertemplate: `${beam.name} return<extra></extra>`, showlegend: false
+      });
+    }
+  });
+  const axisLen = 320;
+  [["x", "#111827", [axisLen,0,0]], ["y", "#64748b", [0,axisLen,0]], ["z", "#d97706", [0,0,axisLen]]].forEach(([name, color, end]) => {
+    traces.push({ type: "scatter3d", mode: "lines+text", name: name + " axis", x: [0,end[0]], y: [0,end[1]], z: [0,end[2]], text: ["", name], textposition: "top center", line: { color, width: 4 }, hoverinfo: "skip", showlegend: false });
+  });
+  const layout = {
+    margin: { l: 0, r: 0, t: 0, b: 0 },
+    paper_bgcolor: "#ffffff",
+    font: { family: "Arial, Helvetica, sans-serif", color: "#172034", size: 12 },
+    scene: {
+      aspectmode: "cube",
+      xaxis: { title: "x (um)", gridcolor: "#e5e7eb", zerolinecolor: "#94a3b8" },
+      yaxis: { title: "y (um)", gridcolor: "#e5e7eb", zerolinecolor: "#94a3b8" },
+      zaxis: { title: "z (um)", gridcolor: "#e5e7eb", zerolinecolor: "#94a3b8" },
+      camera: { eye: { x: 1.55, y: 1.25, z: 0.9 } }
+    },
+    showlegend: true,
+    legend: { x: 0.02, y: 0.98, bgcolor: "rgba(255,255,255,0.75)" }
+  };
+  const plotEl = $("geometryPlot");
+  Plotly.react(plotEl, traces, layout, { responsive: true, displaylogo: false });
+  if (plotEl.dataset.clickBound) return;
+  plotEl.dataset.clickBound = "true";
+  plotEl.on("plotly_click", ev => {
+    const id = ev.points[0]?.data?.customdata?.[0];
+    const beam = beams.find(b => b.id === id);
+    if (beam) fillBeamEditor(beam);
+  });
+}
+
+function plotScan() {
+  if (!window.Plotly) return;
+  const scanIds = beams.filter(b => b.scan).map(b => b.id);
+  if (!scanIds.length && selectedBeamId) scanIds.push(selectedBeamId);
+  const scanNames = beams.filter(b => scanIds.includes(b.id)).map(b => b.name).join(", ");
+  $("scanLine").textContent = scanIds.length ? `Scanning one-way power for: ${scanNames}` : "Select or check a beam to scan.";
+  const min = parseFloat($("scanMin").value);
+  const max = parseFloat($("scanMax").value);
+  const lo = Number.isFinite(min) ? min : 0;
+  const hi = Number.isFinite(max) ? max : 100;
+  const xs = [], depth = [], fx = [], fy = [], fz = [], scatter = [];
+  for (let i = 0; i < POWER_SCAN_POINTS; i++) {
+    const powerW = lo + (hi - lo) * i / (POWER_SCAN_POINTS - 1);
+    const list = beams.map(b => scanIds.includes(b.id) ? { ...b, powerW } : { ...b });
+    const r = calculate(list);
+    xs.push(powerW);
+    depth.push(r.depthK * 1e6);
+    fx.push(r.labFreqs[0] / 1e3);
+    fy.push(r.labFreqs[1] / 1e3);
+    fz.push(r.labFreqs[2] / 1e3);
+    scatter.push(Number.isFinite(r.scatter) ? r.scatter : null);
+  }
+  const commonLayout = {
+    margin: { l: 70, r: 24, t: 36, b: 52 },
+    paper_bgcolor: "#ffffff",
+    plot_bgcolor: "#ffffff",
+    font: { family: "Arial, Helvetica, sans-serif", color: "#172034", size: 12 },
+    xaxis: { title: "Selected beam power (W)", gridcolor: "#e5e7eb" },
+    hovermode: "x unified",
+    legend: { orientation: "h", y: -0.28 }
+  };
+  Plotly.react("depthScanPlot", [
+    { x: xs, y: depth, name: "Trap depth", type: "scatter", mode: "lines", line: { color: "#111827", width: 3 } }
+  ], {
+    ...commonLayout,
+    title: { text: "Trap depth vs selected beam power", font: { size: 15 } },
+    yaxis: { title: "Trap depth (uK)", gridcolor: "#e5e7eb" },
+    showlegend: false
+  }, { responsive: true, displaylogo: false });
+  Plotly.react("frequencyScanPlot", [
+    { x: xs, y: fx, name: "fx", type: "scatter", mode: "lines", line: { color: "#2563eb", width: 2.5 } },
+    { x: xs, y: fy, name: "fy", type: "scatter", mode: "lines", line: { color: "#dc2626", width: 2.5 } },
+    { x: xs, y: fz, name: "fz", type: "scatter", mode: "lines", line: { color: "#059669", width: 2.5 } }
+  ], {
+    ...commonLayout,
+    title: { text: "Lab-frame trap frequencies vs selected beam power", font: { size: 15 } },
+    yaxis: { title: "Frequency (kHz)", gridcolor: "#e5e7eb" }
+  }, { responsive: true, displaylogo: false });
+  Plotly.react("scatteringScanPlot", [
+    { x: xs, y: scatter, name: "Scattering rate", type: "scatter", mode: "lines", line: { color: "#d97706", width: 3 } }
+  ], {
+    ...commonLayout,
+    title: { text: "Photon scattering rate vs selected beam power", font: { size: 15 } },
+    yaxis: { title: "Scattering rate (s^-1)", gridcolor: "#e5e7eb" },
+    showlegend: false
+  }, { responsive: true, displaylogo: false });
+}
+
+function render() {
+  renderBeamList();
+  const result = calculate();
+  renderSummary(result);
+  plotGeometry();
+  plotScan();
+}
+
+function guard(fn) {
+  return (...args) => {
+    try { fn(...args); }
+    catch (e) { alert(e.message); }
+  };
+}
+
+function updateSelectedBeam() {
+  const idx = beams.findIndex(b => b.id === selectedBeamId);
+  if (idx < 0) throw new Error("Select a beam first.");
+  const edited = { ...beams[idx], ...readBeamEditor() };
+  validateBeam(edited);
+  beams[idx] = edited;
+  render();
+}
+
+function addBeam() {
+  const base = readBeamEditor();
+  validateBeam(base);
+  const beam = { ...base, id: crypto.randomUUID(), name: base.name === "New beam" ? `Beam ${beams.length + 1}` : base.name };
+  beams.push(beam);
+  fillBeamEditor(beam);
+}
+
+function deleteBeam() {
+  if (beams.length <= 1) throw new Error("Keep at least one beam in the model.");
+  beams = beams.filter(b => b.id !== selectedBeamId);
+  fillBeamEditor(beams[0]);
+}
+
+function restoreDefaults() {
+  beams = defaultBeams();
+  fillBeamEditor(beams[0]);
+}
+
+function init() {
+  initSpeciesMenu();
+  beams = defaultBeams();
+  fillBeamEditor(beams[0]);
+
+  $("speciesPreset").onchange = () => { loadSpecies($("speciesPreset").value); render(); };
+  ["speciesName", "massAmu", "polarAu", "d1Nm", "d2Nm", "g1MHz", "g2MHz", "scanMin", "scanMax"].forEach(id => $(id).addEventListener("input", render));
+  $("updateBeamBtn").onclick = guard(updateSelectedBeam);
+  $("addBeamBtn").onclick = guard(addBeam);
+  $("deleteBeamBtn").onclick = guard(deleteBeam);
+  $("defaultsBtn").onclick = restoreDefaults;
+  ["beamName", "beamColor", "beamPower", "beamWaist", "beamWavelength", "beamAzimuth", "beamElevation", "beamX", "beamY", "beamZ", "beamRetro", "beamScan"].forEach(id => {
+    $(id).addEventListener("input", () => {
+      if (id === "beamScan") updateSelectedBeam();
+    });
+  });
+}
+
+window.addEventListener("load", init);
+</script>
+</body>
+</html>

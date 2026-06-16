@@ -15,11 +15,13 @@
   html{font-size:16px}
   body{
     margin:0;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+    font-family:Arial,Helvetica,sans-serif;
     background:radial-gradient(circle at top left,#edf4ff 0,#f7f9fc 36%,#fbfbfd 100%);
     color:var(--ink);
   }
   header{padding:24px 28px 8px;max-width:1540px;margin:0 auto}
+  .top-link{display:inline-flex;color:var(--muted);text-decoration:none;font-size:14px;margin-bottom:18px}
+  .top-link:hover{color:var(--accent2);text-decoration:underline;text-underline-offset:3px}
   h1{margin:0;font-size:clamp(28px,3vw,40px);letter-spacing:-.035em;line-height:1.05}
   .subtitle{margin:8px 0 0;color:var(--muted);line-height:1.45;max-width:920px;font-size:15px}
   .app{max-width:1540px;margin:0 auto;padding:16px 28px 28px;display:grid;grid-template-columns:minmax(360px,400px) minmax(0,1fr);gap:20px;align-items:start}
@@ -61,6 +63,7 @@
 </head>
 <body>
 <header>
+  <a class="top-link" href="index.html">← Back to calculators</a>
   <h1>Gaussian Beam Propagator</h1>
   <p class="subtitle">Browser-based ABCD-matrix Gaussian beam calculator. Distances, focal lengths, beam radii, Rayleigh ranges, and waist positions are in mm unless stated otherwise.</p>
 </header>
@@ -187,7 +190,7 @@ function wavelengthToBeamColor(wavelengthNm){
 }
 
 function drawPlot(mouseX=null){const W=canvas.width,H=canvas.height,pad={l:96,r:26,t:28,b:62};ctx.clearRect(0,0,W,H);const {positions,diameters}=currentData;const zMin=positions[0],zMax=positions[positions.length-1];let yMax=Math.max(...diameters.map(d=>d/2),1e-9)*1.35;for(const e of propagator.elements){if(e.position>=zMin&&e.position<=zMax)yMax*=1.02}const xPix=z=>pad.l+(z-zMin)/(zMax-zMin)*(W-pad.l-pad.r);const yPix=y=>pad.t+(yMax-y)/(2*yMax)*(H-pad.t-pad.b);
-  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1;ctx.font='13px system-ui';ctx.fillStyle='#64748b';
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1;ctx.font='13px Arial, Helvetica, sans-serif';ctx.fillStyle='#64748b';
   ctx.textAlign='center';
   for(let i=0;i<=8;i++){const z=zMin+(zMax-zMin)*i/8;const x=xPix(z);ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,H-pad.b);ctx.stroke();ctx.fillText(z.toFixed(0),x,H-28)}
   ctx.textAlign='right';
@@ -195,8 +198,8 @@ function drawPlot(mouseX=null){const W=canvas.width,H=canvas.height,pad={l:96,r:
   ctx.textAlign='left';
   ctx.strokeStyle='#94a3b8';ctx.setLineDash([6,6]);ctx.beginPath();ctx.moveTo(pad.l,yPix(0));ctx.lineTo(W-pad.r,yPix(0));ctx.stroke();ctx.setLineDash([]);
   const top=[],bot=[];positions.forEach((z,i)=>{top.push([xPix(z),yPix(diameters[i]/2)]);bot.push([xPix(z),yPix(-diameters[i]/2)])});ctx.beginPath();top.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));bot.reverse().forEach(([x,y])=>ctx.lineTo(x,y));ctx.closePath();const beamColor=wavelengthToBeamColor(propagator.wavelengthNm);ctx.fillStyle=beamColor.fill;ctx.fill();ctx.strokeStyle=beamColor.stroke;ctx.lineWidth=2.3;ctx.shadowColor=beamColor.fill;ctx.shadowBlur=4;[top,bot.reverse()].forEach(arr=>{ctx.beginPath();arr.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.stroke()});ctx.shadowBlur=0;
-  propagator.elements.forEach((e,i)=>{if(e.position<zMin||e.position>zMax)return;const x=xPix(e.position);ctx.strokeStyle=e.focalLength>0?'#dc2626':'#d97706';ctx.lineWidth=3;ctx.setLineDash(e.focalLength>0?[]:[8,5]);ctx.beginPath();ctx.moveTo(x,yPix(-yMax*.88));ctx.lineTo(x,yPix(yMax*.88));ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=ctx.strokeStyle;ctx.font='12px system-ui';ctx.textAlign='center';ctx.fillText(e.name,x,yPix(-yMax*.98));ctx.textAlign='left'});
-  ctx.strokeStyle='#111827';ctx.lineWidth=1.3;ctx.strokeRect(pad.l,pad.t,W-pad.l-pad.r,H-pad.t-pad.b);ctx.fillStyle='#334155';ctx.font='14px system-ui';ctx.textAlign='center';ctx.fillText('Position z (mm)',W/2,H-12);ctx.save();ctx.translate(28,H/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillText('Beam radius w (mm)',0,0);ctx.restore();ctx.textAlign='left';
+  propagator.elements.forEach((e,i)=>{if(e.position<zMin||e.position>zMax)return;const x=xPix(e.position);ctx.strokeStyle=e.focalLength>0?'#dc2626':'#d97706';ctx.lineWidth=3;ctx.setLineDash(e.focalLength>0?[]:[8,5]);ctx.beginPath();ctx.moveTo(x,yPix(-yMax*.88));ctx.lineTo(x,yPix(yMax*.88));ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=ctx.strokeStyle;ctx.font='12px Arial, Helvetica, sans-serif';ctx.textAlign='center';ctx.fillText(e.name,x,yPix(-yMax*.98));ctx.textAlign='left'});
+  ctx.strokeStyle='#111827';ctx.lineWidth=1.3;ctx.strokeRect(pad.l,pad.t,W-pad.l-pad.r,H-pad.t-pad.b);ctx.fillStyle='#334155';ctx.font='14px Arial, Helvetica, sans-serif';ctx.textAlign='center';ctx.fillText('Position z (mm)',W/2,H-12);ctx.save();ctx.translate(28,H/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillText('Beam radius w (mm)',0,0);ctx.restore();ctx.textAlign='left';
   if(mouseX!==null){const z=zMin+(mouseX-pad.l)/(W-pad.l-pad.r)*(zMax-zMin);if(z>=zMin&&z<=zMax){const p=propagator.paramsAt(z);const x=xPix(z),y=yPix(p.waist);ctx.strokeStyle='#ef4444';ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,H-pad.b);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();$('readout').innerHTML=`z: ${z.toFixed(2)} mm<br>w: ${p.waist.toFixed(5)} mm<br>Ø: ${p.waistDiameter.toFixed(5)} mm<br>R: ${Number.isFinite(p.radiusOfCurvature)?p.radiusOfCurvature.toFixed(2)+' mm':'∞'}`}}
 }
 function renderTable(){const tbody=$('paramTable').querySelector('tbody');tbody.innerHTML='';const params=propagator.getElementParameters();const sorted=[...propagator.elements].sort((a,b)=>a.position-b.position);params.forEach((p,i)=>{const tr=document.createElement('tr');let label='Initial Beam',elemPos='0.00',rel=0;if(i>0){const e=sorted[i-1];label=e.name;elemPos=e.position.toFixed(2);rel=p.waistPosition-e.position;tr.dataset.lensIndex=propagator.elements.indexOf(e)}tr.innerHTML=`<td>${label}</td><td>${elemPos}</td><td>${format(p.waist,4)}</td><td>${format(p.rayleighRange,2)}</td><td>${format(p.waistPosition,2)}</td><td>${format(rel,2)}</td><td>${format(p.radiusOfCurvature,2)}</td>`;if(i>0){tr.ondblclick=()=>{selectedIndex=parseInt(tr.dataset.lensIndex);deleteSelected()}}tbody.appendChild(tr)})}
