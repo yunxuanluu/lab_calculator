@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ODT Sag and Gradient Calculator</title>
+<meta name="description" content="Compare Li6 and Rb87 optical dipole trap potentials with gravity and a magnetic gradient." />
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f7fb;
+    --panel: #ffffff;
+    --soft: #f8fafc;
+    --text: #172034;
+    --muted: #647083;
+    --line: #d8e0ec;
+    --blue: #2457d6;
+    --red: #dc2626;
+    --green: #0f8a65;
+    --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(circle at top left, rgba(36, 87, 214, 0.11), transparent 34rem),
+      linear-gradient(135deg, #fbfdff 0%, var(--bg) 62%, #fffaf5 100%);
+    min-height: 100vh;
+  }
+  header { max-width: 1540px; margin: 0 auto; padding: 26px 28px 10px; }
+  .top-link { display: inline-flex; color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 700; margin-bottom: 18px; }
+  .top-link:hover { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+  h1 { margin: 0; font-size: clamp(30px, 3.1vw, 44px); line-height: 1.08; font-weight: 800; }
+  .subtitle { margin: 12px 0 0; max-width: 1030px; color: var(--muted); font-size: 15px; line-height: 1.6; }
+  .app { max-width: 1540px; margin: 0 auto; padding: 16px 28px 34px; display: grid; grid-template-columns: minmax(370px, 430px) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .card { background: rgba(255,255,255,.97); border: 1px solid rgba(148,163,184,.34); border-radius: 8px; box-shadow: var(--shadow); }
+  .controls { padding: 16px; position: sticky; top: 14px; max-height: calc(100vh - 28px); overflow: auto; }
+  .main { display: grid; gap: 20px; min-width: 0; }
+  fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 15px 14px 14px; margin: 0 0 14px; background: linear-gradient(180deg, #fff, #fbfcff); }
+  legend { font-weight: 800; color: #202b43; padding: 0 8px; font-size: 14.5px; }
+  label { display: block; margin: 0 0 6px; color: #3d485a; font-size: 12px; font-weight: 700; line-height: 1.2; }
+  input { width: 100%; height: 41px; border: 1px solid #cbd5e1; border-radius: 7px; padding: 8px 11px; background: #fff; color: var(--text); font-family: inherit; font-size: 13px; font-weight: 600; outline: none; }
+  input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(36, 87, 214, 0.13); }
+  .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: end; margin-bottom: 12px; }
+  .row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: end; margin-bottom: 12px; }
+  .note { margin: 10px 2px 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+  .section { padding: 18px; }
+  .section-title { font-size: 18px; font-weight: 800; margin-bottom: 5px; }
+  .small { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .metric { min-height: 110px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; background: linear-gradient(180deg, #fff, var(--soft)); }
+  .metric-label { color: var(--muted); font-size: 10.8px; text-transform: uppercase; letter-spacing: .06em; font-weight: 800; }
+  .metric-value { margin-top: 8px; font-size: 23px; line-height: 1.12; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .metric-sub { margin-top: 7px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+  .plot { width: 100%; min-height: 340px; border: 1px solid #e5eaf3; border-radius: 8px; overflow: hidden; background: #fff; }
+  .plot-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+  .fallback { display: none; padding: 18px; border: 1px solid #fecaca; border-radius: 8px; background: #fff1f2; color: #991b1b; line-height: 1.5; }
+  @media (max-width: 1120px) { .app { grid-template-columns: 1fr; } .controls { position: static; max-height: none; } .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 640px) { header, .app { padding-left: 14px; padding-right: 14px; } .row, .row3, .metrics { grid-template-columns: 1fr; } .plot { min-height: 300px; } }
+</style>
+</head>
+<body>
+<header>
+  <a class="top-link" href="index.html">← Back to calculators</a>
+  <h1>ODT Sag and Gradient Calculator</h1>
+  <p class="subtitle">
+    Compare Li6 and Rb87 potentials from the crossed ODT, gravity, and a vertical magnetic gradient.
+    The model uses +z upward: U = U_ODT + m g z - μeff μB B' z.
+  </p>
+</header>
+
+<div class="app">
+  <aside class="card controls">
+    <fieldset>
+      <legend>Horizontal ODT</legend>
+      <div class="row3">
+        <div><label>A power (W)</label><input id="pA" type="number" step="any" value="80"></div>
+        <div><label>A waist (um)</label><input id="wA" type="number" step="any" value="60"></div>
+        <div><label>A azimuth (deg)</label><input id="azA" type="number" step="any" value="80"></div>
+      </div>
+      <div class="row3">
+        <div><label>B power (W)</label><input id="pB" type="number" step="any" value="80"></div>
+        <div><label>B waist (um)</label><input id="wB" type="number" step="any" value="60"></div>
+        <div><label>B azimuth (deg)</label><input id="azB" type="number" step="any" value="76"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Dimple ODT</legend>
+      <div class="row3">
+        <div><label>Power (W)</label><input id="pD" type="number" step="any" value="1"></div>
+        <div><label>Waist (um)</label><input id="wD" type="number" step="any" value="60"></div>
+        <div><label>Elevation (deg)</label><input id="elD" type="number" step="any" value="45"></div>
+      </div>
+      <div class="row">
+        <div><label>Wavelength (nm)</label><input id="lambda" type="number" step="any" value="1064"></div>
+        <div><label>Cut half range (um)</label><input id="range" type="number" step="any" value="180"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Gravity and magnetic gradient</legend>
+      <div class="row">
+        <div><label>Vertical gradient B' (G/cm)</label><input id="bgrad" type="number" step="any" value="0"></div>
+        <div><label>Gravity g (m/s²)</label><input id="gravity" type="number" step="any" value="9.80665"></div>
+      </div>
+      <div class="row">
+        <div><label>Li μeff (μB)</label><input id="muLi" type="number" step="any" value="1"></div>
+        <div><label>Rb μeff (μB)</label><input id="muRb" type="number" step="any" value="1"></div>
+      </div>
+      <div class="note">Positive B' gives an upward magnetic force for positive μeff. Set μeff to the magnetic moment of the trapped state used during evaporation.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Species polarizability</legend>
+      <div class="row">
+        <div><label>Li6 α (a.u.)</label><input id="alphaLi" type="number" step="any" value="270"></div>
+        <div><label>Rb87 α (a.u.)</label><input id="alphaRb" type="number" step="any" value="677.4"></div>
+      </div>
+      <div class="note">These defaults match the D-line convention used in the ODT page near 1064 nm.</div>
+    </fieldset>
+  </aside>
+
+  <main class="main">
+    <section class="card section">
+      <div class="section-title">Sag Summary</div>
+      <div class="small">Sag is calculated from the z-cut minimum of the total potential.</div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Li z minimum</div><div class="metric-value" id="liSag">—</div><div class="metric-sub" id="liForce">—</div></div>
+        <div class="metric"><div class="metric-label">Rb z minimum</div><div class="metric-value" id="rbSag">—</div><div class="metric-sub" id="rbForce">—</div></div>
+        <div class="metric"><div class="metric-label">Differential sag</div><div class="metric-value" id="diffSag">—</div><div class="metric-sub">zLi - zRb</div></div>
+        <div class="metric"><div class="metric-label">Levitation gradients</div><div class="metric-value" id="levGrad">—</div><div class="metric-sub">for μeff = input values</div></div>
+      </div>
+    </section>
+
+    <section class="card section">
+      <div class="section-title">Lab-Frame Potential Cuts</div>
+      <div class="small">Potentials are referenced to each species' own minimum on the displayed cut. Li and Rb are overlaid for direct comparison.</div>
+      <div id="plotFallback" class="fallback">Plotly could not be loaded. The calculator still updates the sag numbers, but plots need the Plotly CDN.</div>
+      <div class="plot-grid">
+        <div id="xPlot" class="plot"></div>
+        <div id="yPlot" class="plot"></div>
+        <div id="zPlot" class="plot"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const C = 299792458;
+const EPS0 = 8.8541878128e-12;
+const KB = 1.380649e-23;
+const AMU = 1.66053906660e-27;
+const MU_B = 9.2740100783e-24;
+const A0 = 5.29177210903e-11;
+const AU_ALPHA = 4 * Math.PI * EPS0 * Math.pow(A0, 3);
+const species = {
+  Li: { label: "Li6", massKg: 6.0151228874 * AMU, color: "#2457d6" },
+  Rb: { label: "Rb87", massKg: 86.9091805 * AMU, color: "#dc2626" }
+};
+const $ = id => document.getElementById(id);
+const num = id => {
+  const v = parseFloat($(id).value);
+  return Number.isFinite(v) ? v : 0;
+};
+const fmt = (x, d = 3) => Number.isFinite(x) ? x.toLocaleString(undefined, { maximumFractionDigits: d }) : "—";
+const deg = x => x * Math.PI / 180;
+function dir(az, el) {
+  const a = deg(az), e = deg(el);
+  return [Math.cos(e) * Math.cos(a), Math.cos(e) * Math.sin(a), Math.sin(e)];
+}
+function dot(a,b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+function sub(a,b) { return [a[0]-b[0], a[1]-b[1], a[2]-b[2]]; }
+function mul(a,s) { return [a[0]*s, a[1]*s, a[2]*s]; }
+
+function beams() {
+  const wl = num("lambda");
+  return [
+    { name: "A", powerW: num("pA"), waistUm: num("wA"), wavelengthNm: wl, direction: dir(num("azA"), 0) },
+    { name: "B", powerW: num("pB"), waistUm: num("wB"), wavelengthNm: wl, direction: dir(num("azB"), 0) },
+    { name: "Dimple", powerW: num("pD"), waistUm: num("wD"), wavelengthNm: wl, direction: dir(0, num("elD")) }
+  ];
+}
+
+function intensityAt(pointUm, beam) {
+  const lambda = beam.wavelengthNm * 1e-9;
+  const w0 = beam.waistUm * 1e-6;
+  const p = pointUm.map(v => v * 1e-6);
+  const s = dot(p, beam.direction);
+  const radial = sub(p, mul(beam.direction, s));
+  const r2 = dot(radial, radial);
+  const zR = Math.PI * w0 * w0 / lambda;
+  const w = w0 * Math.sqrt(1 + (s / zR) ** 2);
+  return 2 * beam.powerW / (Math.PI * w * w) * Math.exp(-2 * r2 / (w * w));
+}
+
+function opticalPotential(pointUm, alphaAu) {
+  const alphaSI = alphaAu * AU_ALPHA;
+  const intensity = beams().reduce((sum, b) => sum + intensityAt(pointUm, b), 0);
+  return -alphaSI * intensity / (2 * EPS0 * C);
+}
+
+function totalPotential(pointUm, spKey) {
+  const sp = species[spKey];
+  const alpha = spKey === "Li" ? num("alphaLi") : num("alphaRb");
+  const muEff = spKey === "Li" ? num("muLi") : num("muRb");
+  const g = num("gravity");
+  const bgradTm = num("bgrad") * 0.01;
+  const zM = pointUm[2] * 1e-6;
+  return opticalPotential(pointUm, alpha) + (sp.massKg * g - muEff * MU_B * bgradTm) * zM;
+}
+
+function cut(axis, spKey) {
+  const range = Math.max(1, Math.abs(num("range")));
+  const n = 501;
+  const xs = [], ys = [];
+  for (let i = 0; i < n; i++) {
+    const u = -range + 2 * range * i / (n - 1);
+    const p = [0, 0, 0];
+    p[axis] = u;
+    xs.push(u);
+    ys.push(totalPotential(p, spKey) / KB * 1e6);
+  }
+  const min = Math.min(...ys);
+  return { xs, ys: ys.map(v => v - min), raw: ys, minIndex: ys.indexOf(min) };
+}
+
+function levitationGradient(spKey) {
+  const sp = species[spKey];
+  const muEff = spKey === "Li" ? num("muLi") : num("muRb");
+  if (muEff === 0) return NaN;
+  return sp.massKg * num("gravity") / (muEff * MU_B) * 100;
+}
+
+function updateSummary() {
+  const liZ = cut(2, "Li");
+  const rbZ = cut(2, "Rb");
+  const zLi = liZ.xs[liZ.minIndex];
+  const zRb = rbZ.xs[rbZ.minIndex];
+  const fLi = species.Li.massKg * num("gravity") - num("muLi") * MU_B * num("bgrad") * 0.01;
+  const fRb = species.Rb.massKg * num("gravity") - num("muRb") * MU_B * num("bgrad") * 0.01;
+  $("liSag").textContent = `${fmt(zLi, 2)} um`;
+  $("rbSag").textContent = `${fmt(zRb, 2)} um`;
+  $("diffSag").textContent = `${fmt(zLi - zRb, 2)} um`;
+  $("liForce").textContent = `linear coefficient ${fmt(fLi / KB * 1e6 * 1e-6, 4)} uK/um`;
+  $("rbForce").textContent = `linear coefficient ${fmt(fRb / KB * 1e6 * 1e-6, 4)} uK/um`;
+  $("levGrad").textContent = `Li ${fmt(levitationGradient("Li"), 2)} / Rb ${fmt(levitationGradient("Rb"), 2)} G/cm`;
+}
+
+function plotCut(axis, target, title, xlabel) {
+  if (!window.Plotly) {
+    $("plotFallback").style.display = "block";
+    return;
+  }
+  $("plotFallback").style.display = "none";
+  const li = cut(axis, "Li");
+  const rb = cut(axis, "Rb");
+  const data = [
+    { x: li.xs, y: li.ys, name: "Li6", type: "scatter", mode: "lines", line: { color: species.Li.color, width: 2.5 } },
+    { x: rb.xs, y: rb.ys, name: "Rb87", type: "scatter", mode: "lines", line: { color: species.Rb.color, width: 2.5 } }
+  ];
+  const layout = {
+    margin: { l: 70, r: 24, t: 42, b: 52 },
+    paper_bgcolor: "#ffffff",
+    plot_bgcolor: "#ffffff",
+    font: { family: "Arial, Helvetica, sans-serif", color: "#172034", size: 12 },
+    title: { text: title, font: { size: 15 } },
+    xaxis: { title: xlabel, gridcolor: "#e5e7eb" },
+    yaxis: { title: "Potential above cut minimum (uK)", gridcolor: "#e5e7eb" },
+    hovermode: "x unified",
+    legend: { orientation: "h", y: -0.28 }
+  };
+  Plotly.react(target, data, layout, { responsive: true, displaylogo: false });
+}
+
+function render() {
+  updateSummary();
+  plotCut(0, "xPlot", "x cut: U(x, 0, 0)", "x (um)");
+  plotCut(1, "yPlot", "y cut: U(0, y, 0)", "y (um)");
+  plotCut(2, "zPlot", "z cut with gravity and gradient", "z (um), +z upward");
+}
+
+document.querySelectorAll("input").forEach(el => {
+  el.addEventListener("input", render);
+  el.addEventListener("change", render);
+});
+window.addEventListener("load", render);
+</script>
+</body>
+</html>

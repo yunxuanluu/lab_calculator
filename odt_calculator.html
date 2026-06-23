@@ -242,7 +242,7 @@
 
   .beam-item {
     display: grid;
-    grid-template-columns: 12px minmax(0, 1fr) auto;
+    grid-template-columns: 12px minmax(0, 1fr);
     align-items: center;
     gap: 10px;
     padding: 10px 11px;
@@ -283,16 +283,6 @@
     color: var(--muted);
     font-size: 11.8px;
     line-height: 1.4;
-  }
-
-  .pill {
-    border-radius: 6px;
-    padding: 5px 8px;
-    background: #e0e7ff;
-    color: #3730a3;
-    font-size: 11px;
-    font-weight: 800;
-    white-space: nowrap;
   }
 
   .section {
@@ -545,8 +535,7 @@
           <input id="beamZ" type="number" step="any" />
         </div>
       </div>
-      <div class="row">
-        <label class="checkline"><input id="beamRetro" type="checkbox" /> Retro return pass</label>
+      <div>
         <label class="checkline"><input id="beamScan" type="checkbox" /> Include in power scan</label>
       </div>
       <div class="btnrow">
@@ -562,7 +551,7 @@
       <div class="btnrow">
         <button class="ghost" id="defaultsBtn" type="button">Restore lab defaults</button>
       </div>
-      <div class="note">Power is one-way incident power. A retro beam adds a return pass of the same power in the smooth-envelope calculation.</div>
+      <div class="note">Each row is one Gaussian ODT beam axis. The horizontal A and B beams are treated as two crossed ODTs.</div>
     </fieldset>
 
     <fieldset>
@@ -577,7 +566,7 @@
           <input id="scanMax" type="number" step="any" value="100" />
         </div>
       </div>
-      <div class="note">Click a beam in the list or 3D plot to focus the scan. Check multiple beams to set them to the same scanned one-way power.</div>
+      <div class="note">Click a beam in the list or 3D plot to focus the scan. The scan plots only the checked beams; unchecked beams are off in the 1D curves.</div>
     </fieldset>
   </aside>
 
@@ -652,7 +641,7 @@
         <tbody></tbody>
       </table>
       <div class="note">
-        Negative frequency signs indicate anti-trapping curvature along that axis or mode. The model assumes red-detuned scalar traps and ignores gravity, magnetic curvature, astigmatism, and retro-reflection interference fringes.
+        Negative frequency signs indicate anti-trapping curvature along that axis or mode. The model assumes red-detuned scalar Gaussian traps and ignores gravity, magnetic curvature, astigmatism, and interference fringes.
       </div>
     </section>
   </main>
@@ -686,15 +675,15 @@ function defaultBeams() {
   return [
     {
       id: crypto.randomUUID(), name: "Horizontal ODT A, 13 deg from y", powerW: 80, waistUm: 60, wavelengthNm: 1064,
-      azimuthDeg: 80, elevationDeg: 0, centerUm: [0, 0, 0], retro: true, scan: true, color: "#2563eb"
+      azimuthDeg: 80, elevationDeg: 0, centerUm: [0, 0, 0], scan: true, color: "#2563eb"
     },
     {
       id: crypto.randomUUID(), name: "Horizontal ODT B, 17 deg from y", powerW: 80, waistUm: 60, wavelengthNm: 1064,
-      azimuthDeg: 76, elevationDeg: 0, centerUm: [0, 0, 0], retro: true, scan: false, color: "#dc2626"
+      azimuthDeg: 76, elevationDeg: 0, centerUm: [0, 0, 0], scan: true, color: "#dc2626"
     },
     {
       id: crypto.randomUUID(), name: "45 deg xz dimple", powerW: 1, waistUm: 60, wavelengthNm: 1064,
-      azimuthDeg: 0, elevationDeg: 45, centerUm: [0, 0, 0], retro: false, scan: false, color: "#059669"
+      azimuthDeg: 0, elevationDeg: 45, centerUm: [0, 0, 0], scan: false, color: "#059669"
     }
   ];
 }
@@ -749,8 +738,7 @@ function beamPasses(list = beams) {
   const passes = [];
   list.forEach(beam => {
     const dir = direction(beam.azimuthDeg, beam.elevationDeg);
-    passes.push({ ...beam, passId: beam.id + "_f", direction: dir, label: beam.name });
-    if (beam.retro) passes.push({ ...beam, passId: beam.id + "_r", direction: mul(dir, -1), label: beam.name + " return" });
+    passes.push({ ...beam, passId: beam.id, direction: dir, label: beam.name });
   });
   return passes;
 }
@@ -865,7 +853,6 @@ function readBeamEditor() {
     azimuthDeg: parseFloat($("beamAzimuth").value),
     elevationDeg: parseFloat($("beamElevation").value),
     centerUm: [parseFloat($("beamX").value), parseFloat($("beamY").value), parseFloat($("beamZ").value)],
-    retro: $("beamRetro").checked,
     scan: $("beamScan").checked,
     color: $("beamColor").value || "#2563eb"
   };
@@ -887,7 +874,6 @@ function fillBeamEditor(beam) {
   $("beamX").value = beam.centerUm[0];
   $("beamY").value = beam.centerUm[1];
   $("beamZ").value = beam.centerUm[2];
-  $("beamRetro").checked = beam.retro;
   $("beamScan").checked = beam.scan;
   $("beamColor").value = beam.color;
   render();
@@ -904,16 +890,15 @@ function renderBeamList() {
       <div>
         <div class="beam-title">${beam.name}</div>
         <div class="beam-meta">${fmt(beam.powerW, 3)} W · w0 ${fmt(beam.waistUm, 2)} um · az ${fmt(beam.azimuthDeg, 1)} deg · el ${fmt(beam.elevationDeg, 1)} deg</div>
-      </div>
-      <span class="pill">${beam.retro ? "retro" : "single"}</span>`;
+      </div>`;
     div.onclick = () => fillBeamEditor(beam);
     box.appendChild(div);
   });
 }
 
 function renderSummary(result) {
-  const totalPower = beams.reduce((s, b) => s + b.powerW * (b.retro ? 2 : 1), 0);
-  $("summaryLine").textContent = `${result.species.name}: ${fmt(totalPower, 2)} W effective smooth-envelope power at ${beams.length} beam axes.`;
+  const totalPower = beams.reduce((s, b) => s + b.powerW, 0);
+  $("summaryLine").textContent = `${result.species.name}: ${fmt(totalPower, 2)} W total configured beam-axis power across ${beams.length} axes.`;
   $("depthMetric").textContent = `${fmt(result.depthK * 1e6, 2)} uK`;
   $("depthSub").textContent = `${sci(result.depthJ)} J at trap center`;
   $("freqMetric").textContent = result.labFreqs.map(f => fmt(f / 1e3, 2)).join(" / ");
@@ -950,14 +935,6 @@ function plotGeometry() {
       line: { color: beam.color, width }, marker: { size: [2, 5, 2], color: beam.color },
       customdata: [[beam.id], [beam.id], [beam.id]], hovertemplate: `${beam.name}<br>x %{x:.1f} um<br>y %{y:.1f} um<br>z %{z:.1f} um<extra></extra>`
     });
-    if (beam.retro) {
-      traces.push({
-        type: "scatter3d", mode: "lines", name: beam.name + " return",
-        x: [p2[0], center[0], p1[0]], y: [p2[1], center[1], p1[1]], z: [p2[2], center[2], p1[2]],
-        line: { color: beam.color, width: Math.max(3, width - 2), dash: "dash" },
-        customdata: [[beam.id], [beam.id], [beam.id]], hovertemplate: `${beam.name} return<extra></extra>`, showlegend: false
-      });
-    }
   });
   const axisLen = 320;
   [["x", "#111827", [axisLen,0,0]], ["y", "#64748b", [0,axisLen,0]], ["z", "#d97706", [0,0,axisLen]]].forEach(([name, color, end]) => {
@@ -993,7 +970,7 @@ function plotScan() {
   const scanIds = beams.filter(b => b.scan).map(b => b.id);
   if (!scanIds.length && selectedBeamId) scanIds.push(selectedBeamId);
   const scanNames = beams.filter(b => scanIds.includes(b.id)).map(b => b.name).join(", ");
-  $("scanLine").textContent = scanIds.length ? `Scanning one-way power for: ${scanNames}` : "Select or check a beam to scan.";
+  $("scanLine").textContent = scanIds.length ? `Scanning selected beams only: ${scanNames}` : "Select or check a beam to scan.";
   const min = parseFloat($("scanMin").value);
   const max = parseFloat($("scanMax").value);
   const lo = Number.isFinite(min) ? min : 0;
@@ -1001,7 +978,7 @@ function plotScan() {
   const xs = [], depth = [], fx = [], fy = [], fz = [], scatter = [];
   for (let i = 0; i < POWER_SCAN_POINTS; i++) {
     const powerW = lo + (hi - lo) * i / (POWER_SCAN_POINTS - 1);
-    const list = beams.map(b => scanIds.includes(b.id) ? { ...b, powerW } : { ...b });
+    const list = beams.map(b => scanIds.includes(b.id) ? { ...b, powerW } : { ...b, powerW: 0 });
     const r = calculate(list);
     xs.push(powerW);
     depth.push(r.depthK * 1e6);
@@ -1100,7 +1077,7 @@ function init() {
   $("addBeamBtn").onclick = guard(addBeam);
   $("deleteBeamBtn").onclick = guard(deleteBeam);
   $("defaultsBtn").onclick = restoreDefaults;
-  ["beamName", "beamColor", "beamPower", "beamWaist", "beamWavelength", "beamAzimuth", "beamElevation", "beamX", "beamY", "beamZ", "beamRetro", "beamScan"].forEach(id => {
+  ["beamName", "beamColor", "beamPower", "beamWaist", "beamWavelength", "beamAzimuth", "beamElevation", "beamX", "beamY", "beamZ", "beamScan"].forEach(id => {
     $(id).addEventListener("input", () => {
       if (id === "beamScan") updateSelectedBeam();
     });
