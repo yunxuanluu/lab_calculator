@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Atom Cloud Properties</title>
+<meta name="description" content="Calculate atom-cloud peak density, thermal de Broglie wavelength, and phase-space density." />
+<style>
+  :root {
+    --bg: #f5f7fb;
+    --card: #ffffff;
+    --soft: #f8fafc;
+    --text: #172034;
+    --muted: #647083;
+    --line: #d8e0ec;
+    --blue: #2457d6;
+    --green: #0f8a65;
+    --red: #dc2626;
+    --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(circle at top left, rgba(36, 87, 214, 0.11), transparent 34rem),
+      linear-gradient(135deg, #fbfdff 0%, var(--bg) 62%, #fffaf5 100%);
+    min-height: 100vh;
+  }
+
+  .page {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 34px 24px 46px;
+  }
+
+  header { margin-bottom: 22px; }
+
+  .top-link {
+    display: inline-flex;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 18px;
+  }
+
+  .top-link:hover {
+    color: var(--blue);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(30px, 3.1vw, 44px);
+    line-height: 1.08;
+    font-weight: 800;
+  }
+
+  .intro {
+    margin: 12px 0 0;
+    max-width: 900px;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .card {
+    background: rgba(255, 255, 255, 0.97);
+    border: 1px solid rgba(148, 163, 184, 0.34);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+  }
+
+  .controls {
+    padding: 16px;
+    position: sticky;
+    top: 14px;
+  }
+
+  fieldset {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 15px 14px 14px;
+    margin: 0 0 14px;
+    background: linear-gradient(180deg, #fff, #fbfcff);
+  }
+
+  legend {
+    font-weight: 800;
+    color: #202b43;
+    padding: 0 8px;
+    font-size: 14.5px;
+  }
+
+  label {
+    display: block;
+    margin: 0 0 6px;
+    color: #3d485a;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  input, select {
+    width: 100%;
+    height: 41px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    padding: 8px 11px;
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(36, 87, 214, 0.13);
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 12px;
+  }
+
+  .row3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 12px;
+  }
+
+  .note {
+    margin: 10px 2px 0;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+
+  .main {
+    display: grid;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  .section {
+    padding: 18px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 5px;
+  }
+
+  .small {
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .metric {
+    min-height: 112px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px;
+    background: linear-gradient(180deg, #fff, var(--soft));
+  }
+
+  .metric-label {
+    color: var(--muted);
+    font-size: 10.8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 800;
+  }
+
+  .metric-value {
+    margin-top: 8px;
+    font-size: 24px;
+    line-height: 1.12;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    word-break: break-word;
+  }
+
+  .metric-sub {
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  table {
+    width: 100%;
+    margin-top: 14px;
+    border-collapse: collapse;
+    border: 1px solid #e5eaf3;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+
+  th, td {
+    padding: 11px 10px;
+    border-bottom: 1px solid #e5eaf3;
+    text-align: right;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  th {
+    background: #f3f6fb;
+    color: #334155;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  th:first-child, td:first-child { text-align: left; }
+  tr:last-child td { border-bottom: 0; }
+
+  .formula {
+    margin-top: 14px;
+    padding: 13px 14px;
+    border-radius: 8px;
+    background: #eef5ff;
+    color: #1e3a8a;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+
+  @media (max-width: 980px) {
+    .layout { grid-template-columns: 1fr; }
+    .controls { position: static; }
+  }
+
+  @media (max-width: 680px) {
+    .page { padding: 30px 14px 40px; }
+    .row, .row3, .metrics { grid-template-columns: 1fr; }
+    th, td { white-space: normal; }
+  }
+</style>
+</head>
+
+<body>
+<main class="page">
+  <header>
+    <a class="top-link" href="index.html">← Back to calculators</a>
+    <h1>Atom Cloud Properties</h1>
+    <p class="intro">
+      Calculate peak density, thermal de Broglie wavelength, and peak phase-space density
+      from atom number, two-axis temperature, and Gaussian cloud radii.
+    </p>
+  </header>
+
+  <div class="layout">
+    <aside class="card controls">
+      <fieldset>
+        <legend>Species</legend>
+        <div class="row">
+          <div>
+            <label for="speciesPreset">Preset</label>
+            <select id="speciesPreset">
+              <option value="Li6">Li6</option>
+              <option value="Rb87">Rb87</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div>
+            <label for="massU">Mass (u)</label>
+            <input id="massU" type="number" step="any" value="6.0151228874" />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Atom number and temperature</legend>
+        <div class="row">
+          <div>
+            <label for="atomNumber">Atom number N</label>
+            <input id="atomNumber" type="number" step="any" value="4.4e8" />
+          </div>
+          <div>
+            <label for="numberUnit">Display density in</label>
+            <select id="numberUnit">
+              <option value="cm3">cm^-3</option>
+              <option value="m3">m^-3</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="tempA">Temperature axis 1 (uK)</label>
+            <input id="tempA" type="number" step="any" value="125" />
+          </div>
+          <div>
+            <label for="tempB">Temperature axis 2 (uK)</label>
+            <input id="tempB" type="number" step="any" value="133" />
+          </div>
+        </div>
+        <div class="note">The calculator always uses the mean of the two temperature inputs.</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Cloud radii</legend>
+        <div class="row">
+          <div>
+            <label for="waistType">Size convention</label>
+            <select id="waistType">
+              <option value="sigma">Gaussian sigma radius</option>
+              <option value="one_over_e_density">1/e density radius</option>
+              <option value="one_over_e2_density">1/e^2 density radius</option>
+              <option value="fwhm_density">Density FWHM diameter</option>
+            </select>
+          </div>
+          <div>
+            <label for="zMode">z size</label>
+            <select id="zMode">
+              <option value="manual">Use z input</option>
+              <option value="mean_xy">Mean of x and y</option>
+              <option value="geomean_xy">Geometric mean of x and y</option>
+            </select>
+          </div>
+        </div>
+        <div class="row3">
+          <div>
+            <label for="wx">x size (um)</label>
+            <input id="wx" type="number" step="any" value="900" />
+          </div>
+          <div>
+            <label for="wy">y size (um)</label>
+            <input id="wy" type="number" step="any" value="1660" />
+          </div>
+          <div>
+            <label for="wz">z size (um)</label>
+            <input id="wz" type="number" step="any" value="1280" />
+          </div>
+        </div>
+        <div class="note">Sigma is the default. The density model is n = n0 exp[-x^2/(2 sigma_x^2) - ...].</div>
+      </fieldset>
+    </aside>
+
+    <main class="main">
+      <section class="card section">
+        <div class="section-title">Main Results</div>
+        <div class="small" id="inputSummary">—</div>
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-label">Peak density</div>
+            <div class="metric-value" id="densityMain">—</div>
+            <div class="metric-sub" id="densityAlt">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Peak PSD</div>
+            <div class="metric-value" id="psdMain">—</div>
+            <div class="metric-sub">PSD = n0 lambda_dB^3</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">de Broglie wavelength</div>
+            <div class="metric-value" id="lambdaMain">—</div>
+            <div class="metric-sub" id="tempMean">—</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card section">
+        <div class="section-title">Converted Gaussian Sigma Sizes</div>
+        <div class="small">These are the sigma radii actually used in the density integral.</div>
+        <table>
+          <thead>
+            <tr><th>Quantity</th><th>x</th><th>y</th><th>z</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Input size (um)</td><td id="inputX">—</td><td id="inputY">—</td><td id="inputZ">—</td></tr>
+            <tr><td>Sigma radius (um)</td><td id="sigmaX">—</td><td id="sigmaY">—</td><td id="sigmaZ">—</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card section">
+        <div class="section-title">Other Useful Properties</div>
+        <table>
+          <tbody>
+            <tr><td>Effective Gaussian volume</td><td id="volumeFactor">—</td></tr>
+            <tr><td>Geometric mean sigma</td><td id="sigmaGeo">—</td></tr>
+            <tr><td>Mean temperature</td><td id="temperatureTable">—</td></tr>
+            <tr><td>Species mass</td><td id="massTable">—</td></tr>
+          </tbody>
+        </table>
+        <div class="formula">
+          lambda_dB = h / sqrt(2*pi*m*kB*T)<br />
+          n0 = N / [(2*pi)^(3/2) sigma_x sigma_y sigma_z]<br />
+          PSD = n0 lambda_dB^3
+        </div>
+      </section>
+    </main>
+  </div>
+</main>
+
+<script>
+const H = 6.62607015e-34;
+const KB = 1.380649e-23;
+const AMU = 1.66053906660e-27;
+
+const species = {
+  Li6: { label: "Li6", massU: 6.0151228874 },
+  Rb87: { label: "Rb87", massU: 86.9091805 }
+};
+
+const $ = id => document.getElementById(id);
+
+function value(id) {
+  const x = parseFloat($(id).value);
+  return Number.isFinite(x) ? x : NaN;
+}
+
+function fmt(x, sig = 4) {
+  if (!Number.isFinite(x)) return "—";
+  const ax = Math.abs(x);
+  if (ax === 0) return "0";
+  if (ax >= 1e4 || ax < 1e-3) return x.toExponential(sig - 1).replace("e+", "e");
+  return Number(x.toPrecision(sig)).toString();
+}
+
+function fmtFixed(x, digits = 3) {
+  return Number.isFinite(x) ? x.toLocaleString(undefined, { maximumFractionDigits: digits }) : "—";
+}
+
+function sigmaFromInput(sizeUm, waistType) {
+  if (waistType === "sigma") return sizeUm;
+  if (waistType === "one_over_e_density") return sizeUm / Math.sqrt(2);
+  if (waistType === "one_over_e2_density") return sizeUm / 2;
+  if (waistType === "fwhm_density") return sizeUm / (2 * Math.sqrt(2 * Math.log(2)));
+  return NaN;
+}
+
+function waistLabel(key) {
+  if (key === "sigma") return "sigma radii";
+  if (key === "one_over_e_density") return "1/e density radii";
+  if (key === "one_over_e2_density") return "1/e^2 density radii";
+  if (key === "fwhm_density") return "density FWHM diameters";
+  return key;
+}
+
+function calculate() {
+  const N = value("atomNumber");
+  const massU = value("massU");
+  const tempA = value("tempA");
+  const tempB = value("tempB");
+  const tempMeanUk = (tempA + tempB) / 2;
+  const waistType = $("waistType").value;
+  const xInput = value("wx");
+  const yInput = value("wy");
+  let zInput = value("wz");
+  if ($("zMode").value === "mean_xy") zInput = (xInput + yInput) / 2;
+  if ($("zMode").value === "geomean_xy") zInput = Math.sqrt(xInput * yInput);
+
+  const sxUm = sigmaFromInput(xInput, waistType);
+  const syUm = sigmaFromInput(yInput, waistType);
+  const szUm = sigmaFromInput(zInput, waistType);
+  const sx = sxUm * 1e-6;
+  const sy = syUm * 1e-6;
+  const sz = szUm * 1e-6;
+  const volumeFactor = Math.pow(2 * Math.PI, 1.5) * sx * sy * sz;
+  const n0m3 = N / volumeFactor;
+  const n0cm3 = n0m3 / 1e6;
+  const tempK = tempMeanUk * 1e-6;
+  const massKg = massU * AMU;
+  const lambdaDb = H / Math.sqrt(2 * Math.PI * massKg * KB * tempK);
+  const psd = n0m3 * Math.pow(lambdaDb, 3);
+  const sigmaGeoUm = Math.cbrt(sxUm * syUm * szUm);
+  return { N, massU, massKg, tempA, tempB, tempMeanUk, tempK, waistType, xInput, yInput, zInput, sxUm, syUm, szUm, volumeFactor, n0m3, n0cm3, lambdaDb, psd, sigmaGeoUm };
+}
+
+function valid(r) {
+  return [r.N, r.massU, r.tempMeanUk, r.xInput, r.yInput, r.zInput, r.sxUm, r.syUm, r.szUm].every(x => Number.isFinite(x) && x > 0);
+}
+
+function render() {
+  const r = calculate();
+  const preset = $("speciesPreset").value;
+  const speciesName = preset === "custom" ? "custom species" : species[preset].label;
+  if (!valid(r)) {
+    $("inputSummary").textContent = "Enter positive atom number, temperature, mass, and cloud sizes.";
+    ["densityMain", "densityAlt", "psdMain", "lambdaMain", "tempMean", "inputX", "inputY", "inputZ", "sigmaX", "sigmaY", "sigmaZ", "volumeFactor", "sigmaGeo", "temperatureTable", "massTable"].forEach(id => $(id).textContent = "—");
+    return;
+  }
+
+  $("inputSummary").textContent = `${speciesName}: N = ${fmt(r.N, 4)}, Tmean = ${fmtFixed(r.tempMeanUk, 3)} uK, input convention = ${waistLabel(r.waistType)}.`;
+
+  if ($("numberUnit").value === "cm3") {
+    $("densityMain").textContent = `${fmt(r.n0cm3, 4)} cm^-3`;
+    $("densityAlt").textContent = `${fmt(r.n0m3, 4)} m^-3`;
+  } else {
+    $("densityMain").textContent = `${fmt(r.n0m3, 4)} m^-3`;
+    $("densityAlt").textContent = `${fmt(r.n0cm3, 4)} cm^-3`;
+  }
+  $("psdMain").textContent = fmt(r.psd, 4);
+  $("lambdaMain").textContent = `${fmtFixed(r.lambdaDb * 1e9, 3)} nm`;
+  $("tempMean").textContent = `mean of ${fmtFixed(r.tempA, 3)} and ${fmtFixed(r.tempB, 3)} uK`;
+
+  $("inputX").textContent = fmtFixed(r.xInput, 3);
+  $("inputY").textContent = fmtFixed(r.yInput, 3);
+  $("inputZ").textContent = fmtFixed(r.zInput, 3);
+  $("sigmaX").textContent = fmtFixed(r.sxUm, 3);
+  $("sigmaY").textContent = fmtFixed(r.syUm, 3);
+  $("sigmaZ").textContent = fmtFixed(r.szUm, 3);
+
+  $("volumeFactor").textContent = `${fmt(r.volumeFactor, 4)} m^3`;
+  $("sigmaGeo").textContent = `${fmtFixed(r.sigmaGeoUm, 3)} um`;
+  $("temperatureTable").textContent = `${fmtFixed(r.tempMeanUk, 3)} uK = ${fmt(r.tempK, 4)} K`;
+  $("massTable").textContent = `${fmtFixed(r.massU, 6)} u = ${fmt(r.massKg, 4)} kg`;
+}
+
+$("speciesPreset").addEventListener("change", () => {
+  const key = $("speciesPreset").value;
+  if (species[key]) $("massU").value = species[key].massU;
+  render();
+});
+
+document.querySelectorAll("input, select").forEach(el => {
+  el.addEventListener("input", render);
+  el.addEventListener("change", render);
+});
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fiber Collimation Calculator</title>
+<meta name="description" content="Calculate collimated beam waist from fiber MFD or NA and collimation lens focal length." />
+<style>
+  :root {
+    --bg: #f5f7fb;
+    --card: #ffffff;
+    --soft: #f8fafc;
+    --text: #172034;
+    --muted: #647083;
+    --line: #d8e0ec;
+    --blue: #2457d6;
+    --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(circle at top left, rgba(36, 87, 214, 0.11), transparent 34rem),
+      linear-gradient(135deg, #fbfdff 0%, var(--bg) 62%, #fffaf5 100%);
+    min-height: 100vh;
+  }
+
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 34px 24px 46px;
+  }
+
+  header { margin-bottom: 22px; }
+
+  .top-link {
+    display: inline-flex;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 18px;
+  }
+
+  .top-link:hover {
+    color: var(--blue);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(30px, 3.1vw, 44px);
+    line-height: 1.08;
+    font-weight: 800;
+  }
+
+  .intro {
+    margin: 12px 0 0;
+    max-width: 760px;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(340px, 410px) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .card {
+    background: rgba(255,255,255,.97);
+    border: 1px solid rgba(148,163,184,.34);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+  }
+
+  .controls, .section { padding: 18px; }
+
+  fieldset {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 15px 14px 14px;
+    margin: 0 0 14px;
+    background: linear-gradient(180deg, #fff, #fbfcff);
+  }
+
+  legend {
+    font-weight: 800;
+    color: #202b43;
+    padding: 0 8px;
+    font-size: 14.5px;
+  }
+
+  label {
+    display: block;
+    margin: 0 0 6px;
+    color: #3d485a;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  input, select {
+    width: 100%;
+    height: 41px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    padding: 8px 11px;
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(36, 87, 214, 0.13);
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: end;
+  }
+
+  .note {
+    margin: 10px 2px 0;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 5px;
+  }
+
+  .small {
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .metric {
+    min-height: 112px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px;
+    background: linear-gradient(180deg, #fff, var(--soft));
+  }
+
+  .metric-label {
+    color: var(--muted);
+    font-size: 10.8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 800;
+  }
+
+  .metric-value {
+    margin-top: 8px;
+    font-size: 26px;
+    line-height: 1.1;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    word-break: break-word;
+  }
+
+  .metric-sub {
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .formula {
+    margin-top: 14px;
+    padding: 13px 14px;
+    border-radius: 8px;
+    background: #eef5ff;
+    color: #1e3a8a;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+
+  table {
+    width: 100%;
+    margin-top: 14px;
+    border-collapse: collapse;
+    border: 1px solid #e5eaf3;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+
+  th, td {
+    padding: 11px 10px;
+    border-bottom: 1px solid #e5eaf3;
+    text-align: right;
+    font-size: 13px;
+  }
+
+  th {
+    background: #f3f6fb;
+    color: #334155;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  th:first-child, td:first-child { text-align: left; }
+  tr:last-child td { border-bottom: 0; }
+
+  @media (max-width: 860px) {
+    .layout, .metrics { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 560px) {
+    .page { padding: 30px 14px 40px; }
+    .row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+
+<body>
+<main class="page">
+  <header>
+    <a class="top-link" href="index.html">← Back to calculators</a>
+    <h1>Fiber Collimation Calculator</h1>
+    <p class="intro">
+      Estimate the collimated Gaussian beam waist after a fiber collimation lens from either the fiber mode-field diameter or numerical aperture.
+    </p>
+  </header>
+
+  <div class="layout">
+    <aside class="card controls">
+      <fieldset>
+        <legend>Input mode</legend>
+        <div class="row">
+          <div>
+            <label for="mode">Fiber parameter</label>
+            <select id="mode">
+              <option value="mfd">Mode-field diameter (MFD)</option>
+              <option value="na">Numerical aperture (NA)</option>
+            </select>
+          </div>
+          <div>
+            <label for="wavelengthNm">Wavelength (nm)</label>
+            <input id="wavelengthNm" type="number" step="any" value="671" />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Fiber and lens</legend>
+        <div class="row">
+          <div>
+            <label for="focalMm">Lens focal length (mm)</label>
+            <input id="focalMm" type="number" step="any" value="40" />
+          </div>
+          <div id="mfdBox">
+            <label for="mfdUm">MFD (um)</label>
+            <input id="mfdUm" type="number" step="any" value="4.5" />
+          </div>
+          <div id="naBox" style="display:none">
+            <label for="fiberNa">Fiber NA</label>
+            <input id="fiberNa" type="number" step="any" value="0.12" />
+          </div>
+        </div>
+        <div class="note">
+          MFD mode uses w_fiber = MFD/2 and w_coll = f λ/(π w_fiber). NA mode uses the paraxial estimate w_coll ≈ f NA.
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Beam power</legend>
+        <div class="row">
+          <div>
+            <label for="beamPower">Power</label>
+            <input id="beamPower" type="number" step="any" value="10" />
+          </div>
+          <div>
+            <label for="beamPowerUnit">Unit</label>
+            <select id="beamPowerUnit">
+              <option value="mW">mW</option>
+              <option value="W">W</option>
+              <option value="uW">uW</option>
+            </select>
+          </div>
+        </div>
+        <div class="note">Intensity assumes the calculated collimated waist is the Gaussian 1/e² intensity radius.</div>
+      </fieldset>
+    </aside>
+
+    <main>
+      <section class="card section">
+        <div class="section-title">Collimated Beam</div>
+        <div class="small" id="summary">—</div>
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-label">1/e² intensity waist</div>
+            <div class="metric-value" id="waistMm">—</div>
+            <div class="metric-sub" id="waistUm">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">1/e² intensity diameter</div>
+            <div class="metric-value" id="diameterMm">—</div>
+            <div class="metric-sub" id="diameterUm">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Peak intensity</div>
+            <div class="metric-value" id="peakIntensity">—</div>
+            <div class="metric-sub" id="peakIntensitySub">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Saturation units</div>
+            <div class="metric-value" id="satPrimary">—</div>
+            <div class="metric-sub">Li D2 shown; full table below</div>
+          </div>
+        </div>
+        <table>
+          <tbody>
+            <tr><td>Full-angle divergence estimate</td><td id="divergence">—</td></tr>
+            <tr><td>Input fiber mode radius</td><td id="fiberMode">—</td></tr>
+            <tr><td>Rayleigh range of collimated beam</td><td id="rayleigh">—</td></tr>
+            <tr><td>Li D1 saturation units</td><td id="satLiD1">—</td></tr>
+            <tr><td>Li D2 saturation units</td><td id="satLiD2">—</td></tr>
+            <tr><td>Rb D1 saturation units</td><td id="satRbD1">—</td></tr>
+            <tr><td>Rb D2 saturation units</td><td id="satRbD2">—</td></tr>
+          </tbody>
+        </table>
+        <div class="small" style="margin-top:10px">I_sat values are literature representative values and are transition/polarization dependent.</div>
+        <div class="formula" id="formula">—</div>
+      </section>
+    </main>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const dLineSaturation = [
+  { id: "satLiD1", label: "Li D1", isatMwCm2: 7.59 },
+  { id: "satLiD2", label: "Li D2", isatMwCm2: 2.54 },
+  { id: "satRbD1", label: "Rb D1", isatMwCm2: 3.58 },
+  { id: "satRbD2", label: "Rb D2", isatMwCm2: 1.66933 }
+];
+
+function num(id) {
+  const x = parseFloat($(id).value);
+  return Number.isFinite(x) ? x : NaN;
+}
+
+function fmt(x, digits = 4) {
+  if (!Number.isFinite(x)) return "—";
+  const ax = Math.abs(x);
+  if (ax === 0) return "0";
+  if (ax >= 1e4 || ax < 1e-3) return x.toExponential(digits - 1).replace("e", " x 10^");
+  return Number(x.toPrecision(digits)).toString();
+}
+
+function powerToW(value, unit) {
+  if (unit === "mW") return value * 1e-3;
+  if (unit === "uW") return value * 1e-6;
+  return value;
+}
+
+function render() {
+  const mode = $("mode").value;
+  const lambdaNm = num("wavelengthNm");
+  const lambdaMm = lambdaNm / 1e6;
+  const fMm = num("focalMm");
+  const mfdUm = num("mfdUm");
+  const na = num("fiberNa");
+  const powerW = powerToW(num("beamPower"), $("beamPowerUnit").value);
+  $("mfdBox").style.display = mode === "mfd" ? "block" : "none";
+  $("naBox").style.display = mode === "na" ? "block" : "none";
+
+  let waistMm = NaN;
+  let fiberModeUm = NaN;
+  let summary = "";
+  let formula = "";
+
+  if (!(lambdaNm > 0) || !(fMm > 0)) {
+    summary = "Enter positive wavelength and focal length.";
+  } else if (mode === "mfd") {
+    if (!(mfdUm > 0)) {
+      summary = "Enter a positive MFD.";
+    } else {
+      const mfdMm = mfdUm / 1000;
+      fiberModeUm = mfdUm / 2;
+      waistMm = 2 * lambdaMm * fMm / (Math.PI * mfdMm);
+      summary = `MFD mode: ${fmt(lambdaNm, 5)} nm, f = ${fmt(fMm, 5)} mm, MFD = ${fmt(mfdUm, 5)} um.`;
+      formula = "w_coll = 2 lambda f / (pi MFD) = f lambda / (pi w_fiber)";
+    }
+  } else {
+    if (!(na > 0)) {
+      summary = "Enter a positive NA.";
+    } else {
+      waistMm = fMm * na;
+      fiberModeUm = lambdaNm / (Math.PI * na);
+      summary = `NA mode: ${fmt(lambdaNm, 5)} nm, f = ${fmt(fMm, 5)} mm, NA = ${fmt(na, 5)}.`;
+      formula = "w_coll ≈ f NA for paraxial half-angle NA; equivalent Gaussian w_fiber ≈ lambda/(pi NA)";
+    }
+  }
+
+  const diameterMm = 2 * waistMm;
+  const divergenceRad = Number.isFinite(waistMm) ? 2 * lambdaMm / (Math.PI * waistMm) : NaN;
+  const zRMm = Number.isFinite(waistMm) ? Math.PI * waistMm * waistMm / lambdaMm : NaN;
+  const waistM = waistMm * 1e-3;
+  const peakIntensityWm2 = Number.isFinite(waistM) && waistM > 0 && powerW > 0 ? 2 * powerW / (Math.PI * waistM * waistM) : NaN;
+  const peakIntensityMwCm2 = peakIntensityWm2 * 0.1;
+
+  $("summary").textContent = summary;
+  $("waistMm").textContent = Number.isFinite(waistMm) ? `${fmt(waistMm, 5)} mm` : "—";
+  $("waistUm").textContent = Number.isFinite(waistMm) ? `${fmt(waistMm * 1000, 5)} um` : "—";
+  $("diameterMm").textContent = Number.isFinite(diameterMm) ? `${fmt(diameterMm, 5)} mm` : "—";
+  $("diameterUm").textContent = Number.isFinite(diameterMm) ? `${fmt(diameterMm * 1000, 5)} um` : "—";
+  $("divergence").textContent = Number.isFinite(divergenceRad) ? `${fmt(divergenceRad * 1e3, 5)} mrad` : "—";
+  $("fiberMode").textContent = Number.isFinite(fiberModeUm) ? `${fmt(fiberModeUm, 5)} um` : "—";
+  $("rayleigh").textContent = Number.isFinite(zRMm) ? `${fmt(zRMm / 1000, 5)} m` : "—";
+  $("peakIntensity").textContent = Number.isFinite(peakIntensityMwCm2) ? `${fmt(peakIntensityMwCm2, 5)} mW/cm²` : "—";
+  $("peakIntensitySub").textContent = Number.isFinite(peakIntensityWm2) ? `${fmt(peakIntensityWm2, 5)} W/m²` : "—";
+  dLineSaturation.forEach(line => {
+    const ratio = peakIntensityMwCm2 / line.isatMwCm2;
+    $(line.id).textContent = Number.isFinite(ratio) ? `${fmt(ratio, 5)} I_sat (${line.label}, I_sat=${fmt(line.isatMwCm2, 4)} mW/cm²)` : "—";
+    if (line.id === "satLiD2") $("satPrimary").textContent = Number.isFinite(ratio) ? `${fmt(ratio, 4)} I_sat` : "—";
+  });
+  $("formula").textContent = formula;
+}
+
+document.querySelectorAll("input, select").forEach(el => {
+  el.addEventListener("input", render);
+  el.addEventListener("change", render);
+});
+
+render();
+</script>
+</body>
+</html>

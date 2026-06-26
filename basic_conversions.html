@@ -507,8 +507,26 @@
         <div class="result-title">Result</div>
         <div class="big" id="beamResult">—</div>
         <div class="small" id="beamSmall">—</div>
+        <div class="conversion-grid" id="beamSatGrid">
+          <div class="conversion-item">
+            <div class="conversion-label">Li D1</div>
+            <div class="conversion-value" id="beamLiD1">—</div>
+          </div>
+          <div class="conversion-item">
+            <div class="conversion-label">Li D2</div>
+            <div class="conversion-value" id="beamLiD2">—</div>
+          </div>
+          <div class="conversion-item">
+            <div class="conversion-label">Rb D1</div>
+            <div class="conversion-value" id="beamRbD1">—</div>
+          </div>
+          <div class="conversion-item">
+            <div class="conversion-label">Rb D2</div>
+            <div class="conversion-value" id="beamRbD2">—</div>
+          </div>
+        </div>
       </div>
-      <div class="formula">I₀ = 2P / (πw²) for a Gaussian beam</div>
+      <div class="formula">I₀ = 2P / (πw²) for a Gaussian beam. I_sat values are literature representative values and are transition/polarization dependent.</div>
     </article>
 
     <article class="card wide">
@@ -543,6 +561,12 @@ const c = 299792458;
 const h = 6.62607015e-34;
 const kB = 1.380649e-23;
 const eV = 1.602176634e-19;
+const dLineSaturation = [
+  { id: "beamLiD1", label: "Li D1", isatMwCm2: 7.59 },
+  { id: "beamLiD2", label: "Li D2", isatMwCm2: 2.54 },
+  { id: "beamRbD1", label: "Rb D1", isatMwCm2: 3.58 },
+  { id: "beamRbD2", label: "Rb D2", isatMwCm2: 1.66933 }
+];
 
 const $ = id => document.getElementById(id);
 
@@ -696,15 +720,20 @@ function updateBeam() {
   if (!(P > 0) || !(w > 0)) {
     $("beamResult").textContent = "Power and waist must be positive";
     $("beamSmall").textContent = "";
+    ["beamLiD1", "beamLiD2", "beamRbD1", "beamRbD2"].forEach(id => $(id).textContent = "—");
     return;
   }
 
   const area = Math.PI * w * w;
   const I0 = 2 * P / area;
   const Iavg = P / area;
+  const I0mWcm2 = I0 * 0.1;
 
-  $("beamResult").textContent = `${fmt(I0 / 1e4)} W/cm²`;
-  $("beamSmall").textContent = `Peak intensity I₀ = ${fmt(I0)} W/m²; P/(πw²) = ${fmt(Iavg / 1e4)} W/cm²`;
+  $("beamResult").textContent = `${fmt(I0mWcm2)} mW/cm²`;
+  $("beamSmall").textContent = `Peak intensity I₀ = ${fmt(I0)} W/m² = ${fmt(I0 / 1e4)} W/cm²; P/(πw²) = ${fmt(Iavg * 0.1)} mW/cm²`;
+  dLineSaturation.forEach(line => {
+    $(line.id).textContent = `${fmt(I0mWcm2 / line.isatMwCm2)} I_sat`;
+  });
 }
 
 function updateAll() {
