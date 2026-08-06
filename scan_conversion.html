@@ -437,8 +437,9 @@ function calculate() {
   const direction = stop >= start ? 1 : -1;
   const span = Math.abs(stop - start);
   let intervals;
-  let finalStop = stop;
+  let linspaceStop = stop;
   let actualStepAbs;
+  let finalPoint;
   let warning = "";
 
   if (includeEndpoint) {
@@ -449,8 +450,8 @@ function calculate() {
     if (mode === "keepStep" && !isExact) {
       intervals = Math.max(1, Math.floor(exactIntervals));
       actualStepAbs = requestedStep;
-      finalStop = start + direction * requestedStep * intervals;
-      warning = `The requested spacing does not land exactly on ${formatValue(stop, unit)}. This mode keeps ${formatValue(requestedStep, unit)} spacing and ends at ${formatValue(finalStop, unit)}.`;
+      linspaceStop = start + direction * requestedStep * intervals;
+      warning = `The requested spacing does not land exactly on ${formatValue(stop, unit)}. This mode keeps ${formatValue(requestedStep, unit)} spacing and ends at ${formatValue(linspaceStop, unit)}.`;
     } else {
       intervals = Math.max(1, nearest);
       actualStepAbs = span / intervals;
@@ -458,22 +459,37 @@ function calculate() {
         warning = `The requested spacing does not divide the range exactly. This mode keeps the stop value and uses ${formatValue(actualStepAbs, unit)} spacing.`;
       }
     }
+    finalPoint = linspaceStop;
   } else {
-    intervals = Math.max(1, Math.ceil(span / requestedStep));
-    actualStepAbs = span / intervals;
+    const exactIntervals = span / requestedStep;
+    const nearest = Math.round(exactIntervals);
+    const isExact = Math.abs(exactIntervals - nearest) < 1e-10 * Math.max(1, exactIntervals);
+    if (mode === "keepStep" && !isExact) {
+      intervals = Math.max(1, Math.floor(exactIntervals) + 1);
+      actualStepAbs = requestedStep;
+      linspaceStop = start + direction * requestedStep * intervals;
+      warning = `With endpoint=False, NumPy excludes the stop argument. This mode keeps ${formatValue(requestedStep, unit)} spacing and uses ${formatValue(linspaceStop, unit)} as the linspace stop argument.`;
+    } else {
+      intervals = Math.max(1, isExact ? nearest : Math.ceil(exactIntervals));
+      actualStepAbs = span / intervals;
+      if (!isExact) {
+        warning = `With endpoint=False, NumPy excludes the stop argument. This mode keeps the stop argument and uses ${formatValue(actualStepAbs, unit)} spacing.`;
+      }
+    }
+    finalPoint = start + direction * actualStepAbs * (intervals - 1);
   }
 
   const points = includeEndpoint ? intervals + 1 : intervals;
   const actualStep = direction * actualStepAbs;
   const endpointArg = includeEndpoint ? "" : ", endpoint=False";
-  const code = `${variable} = np.linspace(${cleanNumber(start)}, ${cleanNumber(finalStop)}, ${points}${endpointArg})`;
+  const code = `${variable} = np.linspace(${cleanNumber(start)}, ${cleanNumber(linspaceStop)}, ${points}${endpointArg})`;
 
   $("numPoints").textContent = String(points);
   $("actualStep").textContent = formatValue(actualStep, unit);
-  $("finalPoint").textContent = formatValue(finalStop, unit);
+  $("finalPoint").textContent = formatValue(finalPoint, unit);
   $("codeBox").value = code;
   $("previewValues").textContent = makePreview(start, actualStep, points, unit);
-  $("resultDesc").textContent = `${points} points from ${formatValue(start, unit)} to ${formatValue(finalStop, unit)}.`;
+  $("resultDesc").textContent = `${points} points from ${formatValue(start, unit)} to ${formatValue(finalPoint, unit)}.`;
 
   const warningBox = $("warningBox");
   warningBox.style.display = warning ? "block" : "none";
