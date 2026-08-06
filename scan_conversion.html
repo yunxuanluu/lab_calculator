@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scan Conversion Helper</title>
+<meta name="description" content="Convert scan start, stop, and point spacing into a copy-ready NumPy linspace expression." />
+<style>
+  :root {
+    --bg: #f7f8fb;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --blue: #2563eb;
+    --blue-soft: #eff6ff;
+    --green: #059669;
+    --amber: #b45309;
+    --shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(circle at top left, rgba(37, 99, 235, 0.10), transparent 30rem),
+      linear-gradient(135deg, #f8fbff 0%, var(--bg) 62%, #fff7ed 100%);
+    min-height: 100vh;
+  }
+
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 44px 24px 52px;
+  }
+
+  header { margin-bottom: 28px; }
+
+  .top-link {
+    display: inline-flex;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+
+  .top-link:hover {
+    color: var(--blue);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 42px;
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+  }
+
+  .intro {
+    margin: 14px 0 0;
+    max-width: 760px;
+    color: var(--muted);
+    font-size: 16.5px;
+    line-height: 1.6;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(330px, 420px) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.95);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: var(--shadow);
+  }
+
+  h2 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+  }
+
+  .desc {
+    margin: 0 0 18px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 13px;
+  }
+
+  .row.single { grid-template-columns: 1fr; }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+
+  input, select {
+    width: 100%;
+    height: 42px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 9px 11px;
+    background: white;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13);
+  }
+
+  .checkline {
+    display: flex;
+    gap: 9px;
+    align-items: center;
+    margin: 4px 0 14px;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .checkline input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--blue);
+  }
+
+  button {
+    border: 0;
+    border-radius: 12px;
+    min-height: 42px;
+    padding: 10px 14px;
+    background: #e8eef7;
+    color: #162033;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 9px 18px rgba(15, 23, 42, 0.10);
+  }
+
+  .primary {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: #fff;
+  }
+
+  .results {
+    display: grid;
+    gap: 14px;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .metric {
+    padding: 13px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #f8fafc;
+  }
+
+  .metric-label {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .metric-value {
+    margin-top: 7px;
+    font-size: 23px;
+    line-height: 1.15;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .code-card {
+    border: 1px solid #dbeafe;
+    border-radius: 16px;
+    background: var(--blue-soft);
+    padding: 14px;
+  }
+
+  .code-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .code-title {
+    color: #1e40af;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 80px;
+    resize: vertical;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 12px;
+    background: #fff;
+    color: #172033;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .small {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .warning {
+    display: none;
+    border: 1px solid #fed7aa;
+    border-radius: 14px;
+    background: #fff7ed;
+    color: var(--amber);
+    padding: 12px 13px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .preview {
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #fff;
+    padding: 14px;
+  }
+
+  .preview-values {
+    margin-top: 9px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    color: #172033;
+    font-size: 13px;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 580px) {
+    .page { padding: 36px 16px 44px; }
+    h1 { font-size: 34px; }
+    .row, .summary-grid { grid-template-columns: 1fr; }
+    .code-head { display: block; }
+    .code-head button { margin-top: 10px; width: 100%; }
+  }
+</style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <a class="top-link" href="index.html">← Back to calculators</a>
+      <h1>Scan Conversion Helper</h1>
+      <p class="intro">
+        Convert a desired scan range and point spacing into a copy-ready NumPy expression.
+        For example, 100 to 1000 with 20 spacing becomes <code>np.linspace(100, 1000, 46)</code>.
+      </p>
+    </header>
+
+    <div class="layout">
+      <section class="card">
+        <h2>Scan Inputs</h2>
+        <p class="desc">Enter the physical values exactly as you want to think about the scan.</p>
+
+        <div class="row">
+          <div>
+            <label>Start</label>
+            <input id="startValue" type="number" step="any" value="100" />
+          </div>
+          <div>
+            <label>Stop</label>
+            <input id="stopValue" type="number" step="any" value="1000" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Desired point spacing</label>
+            <input id="stepValue" type="number" step="any" value="20" />
+          </div>
+          <div>
+            <label>Unit label</label>
+            <input id="unitLabel" type="text" value="Hz" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Variable name</label>
+            <input id="varName" type="text" value="freqs" />
+          </div>
+          <div>
+            <label>If spacing does not divide range</label>
+            <select id="mode">
+              <option value="keepStop">Keep exact stop; adjust spacing slightly</option>
+              <option value="keepStep">Keep exact spacing; adjust final stop</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="checkline"><input id="includeEndpoint" type="checkbox" checked /> Include endpoint</label>
+        <button class="primary" id="copyBtn" type="button">Copy np.linspace</button>
+      </section>
+
+      <section class="results">
+        <div class="card">
+          <h2>Result</h2>
+          <p class="desc" id="resultDesc">Ready.</p>
+          <div class="summary-grid">
+            <div class="metric">
+              <div class="metric-label">Points</div>
+              <div class="metric-value" id="numPoints">—</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Actual spacing</div>
+              <div class="metric-value" id="actualStep">—</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Final point</div>
+              <div class="metric-value" id="finalPoint">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head">
+            <div class="code-title">Copy-ready NumPy</div>
+            <button id="copyBtn2" type="button">Copy</button>
+          </div>
+          <textarea id="codeBox" readonly></textarea>
+        </div>
+
+        <div class="warning" id="warningBox"></div>
+
+        <div class="preview">
+          <h2>Point Preview</h2>
+          <div class="small">First points and last points from the generated scan.</div>
+          <div class="preview-values" id="previewValues">—</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function readNumber(id) {
+  const value = parseFloat($(id).value);
+  if (!Number.isFinite(value)) throw new Error(`Invalid value: ${id}`);
+  return value;
+}
+
+function cleanNumber(value, digits = 12) {
+  if (!Number.isFinite(value)) return "nan";
+  const rounded = Number(value.toPrecision(digits));
+  return Object.is(rounded, -0) ? "0" : String(rounded);
+}
+
+function formatValue(value, unit = "") {
+  const text = cleanNumber(value, 9);
+  return unit.trim() ? `${text} ${unit.trim()}` : text;
+}
+
+function safeVarName(raw) {
+  const name = raw.trim() || "scan_values";
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : "scan_values";
+}
+
+function makePreview(start, step, n, unit) {
+  const values = [];
+  const shown = Math.min(n, 6);
+  for (let i = 0; i < shown; i++) values.push(formatValue(start + step * i, unit));
+  if (n > 10) values.push("...");
+  const tailStart = n > 10 ? n - 4 : shown;
+  for (let i = tailStart; i < n; i++) {
+    if (i >= shown) values.push(formatValue(start + step * i, unit));
+  }
+  return values.join(", ");
+}
+
+function calculate() {
+  const start = readNumber("startValue");
+  const stop = readNumber("stopValue");
+  const requestedStepInput = readNumber("stepValue");
+  const requestedStep = Math.abs(requestedStepInput);
+  const includeEndpoint = $("includeEndpoint").checked;
+  const mode = $("mode").value;
+  const unit = $("unitLabel").value;
+  const variable = safeVarName($("varName").value);
+
+  if (requestedStep <= 0) throw new Error("Point spacing must be positive.");
+  if (start === stop) throw new Error("Start and stop must be different.");
+
+  const direction = stop >= start ? 1 : -1;
+  const span = Math.abs(stop - start);
+  let intervals;
+  let finalStop = stop;
+  let actualStepAbs;
+  let warning = "";
+
+  if (includeEndpoint) {
+    const exactIntervals = span / requestedStep;
+    const nearest = Math.round(exactIntervals);
+    const isExact = Math.abs(exactIntervals - nearest) < 1e-10 * Math.max(1, exactIntervals);
+
+    if (mode === "keepStep" && !isExact) {
+      intervals = Math.max(1, Math.floor(exactIntervals));
+      actualStepAbs = requestedStep;
+      finalStop = start + direction * requestedStep * intervals;
+      warning = `The requested spacing does not land exactly on ${formatValue(stop, unit)}. This mode keeps ${formatValue(requestedStep, unit)} spacing and ends at ${formatValue(finalStop, unit)}.`;
+    } else {
+      intervals = Math.max(1, nearest);
+      actualStepAbs = span / intervals;
+      if (!isExact) {
+        warning = `The requested spacing does not divide the range exactly. This mode keeps the stop value and uses ${formatValue(actualStepAbs, unit)} spacing.`;
+      }
+    }
+  } else {
+    intervals = Math.max(1, Math.ceil(span / requestedStep));
+    actualStepAbs = span / intervals;
+  }
+
+  const points = includeEndpoint ? intervals + 1 : intervals;
+  const actualStep = direction * actualStepAbs;
+  const endpointArg = includeEndpoint ? "" : ", endpoint=False";
+  const code = `${variable} = np.linspace(${cleanNumber(start)}, ${cleanNumber(finalStop)}, ${points}${endpointArg})`;
+
+  $("numPoints").textContent = String(points);
+  $("actualStep").textContent = formatValue(actualStep, unit);
+  $("finalPoint").textContent = formatValue(finalStop, unit);
+  $("codeBox").value = code;
+  $("previewValues").textContent = makePreview(start, actualStep, points, unit);
+  $("resultDesc").textContent = `${points} points from ${formatValue(start, unit)} to ${formatValue(finalStop, unit)}.`;
+
+  const warningBox = $("warningBox");
+  warningBox.style.display = warning ? "block" : "none";
+  warningBox.textContent = warning;
+}
+
+async function copyCode() {
+  calculate();
+  const text = $("codeBox").value;
+  try {
+    await navigator.clipboard.writeText(text);
+    $("resultDesc").textContent = "Copied to clipboard.";
+  } catch {
+    $("codeBox").focus();
+    $("codeBox").select();
+    document.execCommand("copy");
+    $("resultDesc").textContent = "Copied to clipboard.";
+  }
+}
+
+function guardedCalculate() {
+  try {
+    calculate();
+  } catch (error) {
+    $("resultDesc").textContent = error.message;
+    $("numPoints").textContent = "—";
+    $("actualStep").textContent = "—";
+    $("finalPoint").textContent = "—";
+    $("codeBox").value = "";
+    $("previewValues").textContent = "—";
+    $("warningBox").style.display = "none";
+  }
+}
+
+["startValue", "stopValue", "stepValue", "unitLabel", "varName", "mode", "includeEndpoint"].forEach(id => {
+  $(id).addEventListener("input", guardedCalculate);
+  $(id).addEventListener("change", guardedCalculate);
+});
+
+$("copyBtn").addEventListener("click", copyCode);
+$("copyBtn2").addEventListener("click", copyCode);
+guardedCalculate();
+</script>
+</body>
+</html>
