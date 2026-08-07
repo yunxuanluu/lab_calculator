@@ -115,6 +115,10 @@
     grid-template-columns: 1fr;
   }
 
+  .row.three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   label {
     display: block;
     font-size: 13px;
@@ -216,6 +220,56 @@
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   }
 
+  .code-result {
+    width: 100%;
+    min-height: 74px;
+    resize: vertical;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 11px 12px;
+    background: #fff;
+    color: #172033;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .copy-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+  }
+
+  button {
+    border: 0;
+    border-radius: 12px;
+    min-height: 42px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: #fff;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  button:hover {
+    box-shadow: 0 9px 18px rgba(15, 23, 42, 0.10);
+  }
+
+  .warning {
+    display: none;
+    margin-top: 10px;
+    padding: 11px 12px;
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    background: #fff7ed;
+    color: #b45309;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
   .mini-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -276,7 +330,7 @@
       font-size: 34px;
     }
 
-    .row {
+    .row, .row.three {
       grid-template-columns: 1fr;
     }
   }
@@ -295,6 +349,55 @@
   </header>
 
   <section class="grid">
+    <article class="card wide">
+      <h2>scan spacing → np.linspace</h2>
+      <p class="desc">Convert scan start, stop, and desired point spacing into a copy-ready NumPy expression.</p>
+
+      <div class="row three">
+        <div>
+          <label for="scanStart">Start</label>
+          <input id="scanStart" type="number" step="any" value="100" />
+        </div>
+        <div>
+          <label for="scanStop">Stop</label>
+          <input id="scanStop" type="number" step="any" value="1000" />
+        </div>
+        <div>
+          <label for="scanSpacing">Point spacing</label>
+          <input id="scanSpacing" type="number" step="any" value="20" />
+        </div>
+      </div>
+
+      <div class="row three">
+        <div>
+          <label for="scanVar">Variable name</label>
+          <input id="scanVar" type="text" value="freqs" />
+        </div>
+        <div>
+          <label for="scanUnit">Unit label</label>
+          <input id="scanUnit" type="text" value="Hz" />
+        </div>
+        <div>
+          <label for="scanMode">If spacing does not divide range</label>
+          <select id="scanMode">
+            <option value="keepStop">Keep exact stop</option>
+            <option value="keepStep">Keep exact spacing</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="result">
+        <div class="result-title">Copy-ready NumPy</div>
+        <textarea class="code-result" id="scanCode" readonly></textarea>
+        <div class="copy-row">
+          <button id="copyScanBtn" type="button">Copy np.linspace</button>
+          <div class="small" id="scanSummary">—</div>
+        </div>
+        <div class="warning" id="scanWarning"></div>
+      </div>
+      <div class="formula">Number of points = (stop - start) / spacing + 1 when the endpoint is included.</div>
+    </article>
+
     <article class="card">
       <h2>dBm ↔ power</h2>
       <p class="desc">Convert RF or optical power between dBm, mW, and W.</p>
@@ -583,6 +686,17 @@ function inputNumber(id) {
   return Number.isFinite(v) ? v : NaN;
 }
 
+function cleanNumber(value, digits = 12) {
+  if (!Number.isFinite(value)) return "nan";
+  const rounded = Number(value.toPrecision(digits));
+  return Object.is(rounded, -0) ? "0" : String(rounded);
+}
+
+function safeVarName(raw) {
+  const name = raw.trim() || "scan_values";
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : "scan_values";
+}
+
 function powerToW(value, unit) {
   if (unit === "dBm") return 1e-3 * Math.pow(10, value / 10);
   if (unit === "mW") return value * 1e-3;
@@ -736,7 +850,66 @@ function updateBeam() {
   });
 }
 
+function updateScanConversion() {
+  const start = inputNumber("scanStart");
+  const stop = inputNumber("scanStop");
+  const spacing = Math.abs(inputNumber("scanSpacing"));
+  const unit = $("scanUnit").value.trim();
+  const variable = safeVarName($("scanVar").value);
+  const mode = $("scanMode").value;
+
+  if (!Number.isFinite(start) || !Number.isFinite(stop) || !(spacing > 0) || start === stop) {
+    $("scanCode").value = "";
+    $("scanSummary").textContent = "Use different start/stop values and a positive spacing.";
+    $("scanWarning").style.display = "none";
+    return;
+  }
+
+  const direction = stop >= start ? 1 : -1;
+  const span = Math.abs(stop - start);
+  const exactIntervals = span / spacing;
+  const nearest = Math.round(exactIntervals);
+  const isExact = Math.abs(exactIntervals - nearest) < 1e-10 * Math.max(1, exactIntervals);
+  let intervals;
+  let actualSpacing;
+  let linspaceStop = stop;
+  let warning = "";
+
+  if (mode === "keepStep" && !isExact) {
+    intervals = Math.max(1, Math.floor(exactIntervals));
+    actualSpacing = spacing;
+    linspaceStop = start + direction * spacing * intervals;
+    warning = `Requested spacing does not land exactly on ${fmt(stop)}${unit ? " " + unit : ""}. Keeping the spacing ends at ${fmt(linspaceStop)}${unit ? " " + unit : ""}.`;
+  } else {
+    intervals = Math.max(1, nearest);
+    actualSpacing = span / intervals;
+    if (!isExact) warning = `Requested spacing does not divide the range exactly. Keeping the stop uses ${fmt(actualSpacing)}${unit ? " " + unit : ""} spacing.`;
+  }
+
+  const points = intervals + 1;
+  const signedSpacing = direction * actualSpacing;
+  $("scanCode").value = `${variable} = np.linspace(${cleanNumber(start)}, ${cleanNumber(linspaceStop)}, ${points})`;
+  $("scanSummary").textContent = `${points} points; actual spacing ${fmt(signedSpacing)}${unit ? " " + unit : ""}; last point ${fmt(linspaceStop)}${unit ? " " + unit : ""}.`;
+  $("scanWarning").textContent = warning;
+  $("scanWarning").style.display = warning ? "block" : "none";
+}
+
+async function copyScanCode() {
+  updateScanConversion();
+  const text = $("scanCode").value;
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    $("scanCode").focus();
+    $("scanCode").select();
+    document.execCommand("copy");
+  }
+  $("scanSummary").textContent = "Copied to clipboard.";
+}
+
 function updateAll() {
+  updateScanConversion();
   updateDbmPower();
   updateDbmVoltage();
   updateFreqWave();
@@ -750,6 +923,7 @@ document.querySelectorAll("input, select").forEach(el => {
   el.addEventListener("change", updateAll);
 });
 
+$("copyScanBtn").addEventListener("click", copyScanCode);
 updateAll();
 </script>
 </body>

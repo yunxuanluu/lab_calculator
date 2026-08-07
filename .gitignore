@@ -1,0 +1,12 @@
+.DS_Store
+*.swp
+*.swo
+*.tmp
+
+# Local editor and system files
+.vscode/
+.idea/
+
+# Local logs and caches
+*.log
+.cache/
