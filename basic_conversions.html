@@ -368,15 +368,7 @@
         </div>
       </div>
 
-      <div class="row three">
-        <div>
-          <label for="scanVar">Variable name</label>
-          <input id="scanVar" type="text" value="freqs" />
-        </div>
-        <div>
-          <label for="scanUnit">Unit label</label>
-          <input id="scanUnit" type="text" value="Hz" />
-        </div>
+      <div class="row single">
         <div>
           <label for="scanMode">If spacing does not divide range</label>
           <select id="scanMode">
@@ -692,11 +684,6 @@ function cleanNumber(value, digits = 12) {
   return Object.is(rounded, -0) ? "0" : String(rounded);
 }
 
-function safeVarName(raw) {
-  const name = raw.trim() || "scan_values";
-  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : "scan_values";
-}
-
 function powerToW(value, unit) {
   if (unit === "dBm") return 1e-3 * Math.pow(10, value / 10);
   if (unit === "mW") return value * 1e-3;
@@ -854,8 +841,6 @@ function updateScanConversion() {
   const start = inputNumber("scanStart");
   const stop = inputNumber("scanStop");
   const spacing = Math.abs(inputNumber("scanSpacing"));
-  const unit = $("scanUnit").value.trim();
-  const variable = safeVarName($("scanVar").value);
   const mode = $("scanMode").value;
 
   if (!Number.isFinite(start) || !Number.isFinite(stop) || !(spacing > 0) || start === stop) {
@@ -879,17 +864,17 @@ function updateScanConversion() {
     intervals = Math.max(1, Math.floor(exactIntervals));
     actualSpacing = spacing;
     linspaceStop = start + direction * spacing * intervals;
-    warning = `Requested spacing does not land exactly on ${fmt(stop)}${unit ? " " + unit : ""}. Keeping the spacing ends at ${fmt(linspaceStop)}${unit ? " " + unit : ""}.`;
+    warning = `Requested spacing does not land exactly on ${fmt(stop)}. Keeping the spacing ends at ${fmt(linspaceStop)}.`;
   } else {
     intervals = Math.max(1, nearest);
     actualSpacing = span / intervals;
-    if (!isExact) warning = `Requested spacing does not divide the range exactly. Keeping the stop uses ${fmt(actualSpacing)}${unit ? " " + unit : ""} spacing.`;
+    if (!isExact) warning = `Requested spacing does not divide the range exactly. Keeping the stop uses ${fmt(actualSpacing)} spacing.`;
   }
 
   const points = intervals + 1;
   const signedSpacing = direction * actualSpacing;
-  $("scanCode").value = `${variable} = np.linspace(${cleanNumber(start)}, ${cleanNumber(linspaceStop)}, ${points})`;
-  $("scanSummary").textContent = `${points} points; actual spacing ${fmt(signedSpacing)}${unit ? " " + unit : ""}; last point ${fmt(linspaceStop)}${unit ? " " + unit : ""}.`;
+  $("scanCode").value = `np.linspace(${cleanNumber(start)}, ${cleanNumber(linspaceStop)}, ${points})`;
+  $("scanSummary").textContent = `${points} points; actual spacing ${fmt(signedSpacing)}; last point ${fmt(linspaceStop)}.`;
   $("scanWarning").textContent = warning;
   $("scanWarning").style.display = warning ? "block" : "none";
 }
